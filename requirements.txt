@@ -4,3 +4,4 @@ grpcio-tools
 protobuf
 pyzmq
 scipy
+pytest

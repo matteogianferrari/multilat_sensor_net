@@ -8,7 +8,7 @@ Classes:
     TargetUpdater: TargetService class for managing target position updates in 3D space.
 
 Usage Example:
-    from tri_sensor_net.target import TargetUpdater, TargetObject
+    from multilat_sensor_net.target import TargetUpdater, TargetObject
     import time
     import numpy as np
 

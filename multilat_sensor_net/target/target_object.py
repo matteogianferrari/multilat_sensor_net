@@ -7,7 +7,7 @@ Classes:
 
 Usage Example:
     import numpy as np
-    from tri_sensor_net.target import TargetObject
+    from multilat_sensor_net.target import TargetObject
 
     obj = TargetObject(start_pos=np.array([0., 0., 0.]))
     obj.set_position(new_pos=np.array([1., 1., 1.]))

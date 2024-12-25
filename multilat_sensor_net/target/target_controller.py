@@ -8,7 +8,7 @@ Classes:
     TargetController: TargetController serves as a facade for managing a target in a 3D space.
 
 Usage Example:
-    from tri_sensor_net.target import TargetController
+    from multilat_sensor_net.target import TargetController
 
     obj = TargetController(socket_addr="localhost:50051", path_file="./data/path.json", freq=3, loop_path=True)
     obj.start()

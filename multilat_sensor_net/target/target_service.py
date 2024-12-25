@@ -9,7 +9,7 @@ Classes:
 
 Usage Example:
     import numpy as np
-    from tri_sensor_net.target import TargetService, TargetObject
+    from multilat_sensor_net.target import TargetService, TargetObject
 
     obj = TargetObject(start_pos=np.array([0., 0., 0.]))
     service = TargetService(target_ref=obj, socket_addr="localhost:50051")
