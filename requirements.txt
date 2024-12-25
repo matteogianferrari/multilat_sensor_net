@@ -1,0 +1,6 @@
+numpy
+grpcio
+grpcio-tools
+protobuf
+pyzmq
+scipy

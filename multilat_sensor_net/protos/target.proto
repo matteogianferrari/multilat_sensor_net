@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+// Package name to avoid naming conflicts
+package target;
+
+
+/**
+ * Enum representing the status of the position retrieval.
+ */
+enum PositionStatus {
+  PS_UNKNOWN = 0; // Default value
+  PS_OK = 1;      // Position retrieved successfully
+  PS_ERROR = 2;   // An error occurred during the retrieval
+}
+
+/**
+ * Request message for retrieving the position of a target object.
+ */
+message GetPositionRequest {
+  int32 node_id = 1;  // Requesting node ID
+}
+
+/**
+ * Response message for the position of a target object.
+ */
+message GetPositionResponse {
+  PositionStatus status = 1;  // Status of the position retrieval
+
+  float x = 2;  // X-coordinate of the target's position
+  float y = 3;  // Y-coordinate of the target's position
+  float z = 4;  // Z-coordinate of the target's position
+}
+
+
+/**
+ * Service defining the operations available for the target.
+ */
+service Target {
+  // RPC method to retrieve the position of a target object.
+  rpc GetPosition(GetPositionRequest) returns (GetPositionResponse) {}
+}

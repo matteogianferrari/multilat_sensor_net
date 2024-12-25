@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+// Package name to avoid naming conflicts
+package dist_network;
+
+
+/**
+ * Enum representing the status of the operation to compute the target global position.
+ */
+enum TargetStatus {
+  TS_UNKNOWN = 0; // Default value
+  TS_OK = 1;      // Target position returned successfully
+  TS_ERROR = 2;   // An error occurred during the process
+}
+
+/**
+ * Request message for getting the target global position from the distributed network.
+ */
+message TargetRequest {
+  int32 client_id = 1;  // Requesting client ID
+}
+
+/**
+ * Response message for getting the target global position from the distributed network.
+ */
+message TargetResponse {
+  TargetStatus status = 1;  // Status of the operation
+
+  float x = 2;  // X-coordinate of the target's global position
+  float y = 3;  // Y-coordinate of the target's global position
+  float z = 4;  // Z-coordinate of the target's global position
+}
+
+
+/**
+ * Enum representing the status of the node addition to the distributed network.
+ */
+enum NodeStatus {
+  NS_UNKNOWN = 0; // Default value
+  NS_OK = 1;      // Node added successfully
+  NS_ERROR = 2;   // An error occurred during the addition
+}
+
+/**
+ * Request message for adding a node to the distributed network.
+ */
+message NodeRequest {
+  int32 node_id = 1;  // Requesting node ID
+
+  float x = 2;  // X-coordinate of the sensor's global position
+  float y = 3;  // Y-coordinate of the sensor's global position
+  float z = 4;  // Z-coordinate of the sensor's global position
+
+  string bind_address = 5;  // Socket address of the node
+}
+
+/**
+ * Response message for addition of a node into the distributed network.
+ */
+message NodeResponse {
+  NodeStatus status = 1;  // Status of the node addition
+
+  float x = 2;  // X-coordinate of the sensor's global position
+  float y = 3;  // Y-coordinate of the sensor's global position
+  float z = 4;  // Z-coordinate of the sensor's global position
+}
+
+
+/**
+ * Enum representing the status of the start operation for the distributed network.
+ */
+enum SNStatus {
+  SS_UNKNOWN = 0;  // Default value
+  SS_OK = 1;       // Network correctly started
+  SS_ERROR = 2;    // An error occurred during the start operation
+}
+
+/**
+ * Request message for starting the distributed network.
+ */
+message StartRequest {
+  int32 client_id = 1;  // Requesting client ID
+}
+
+/**
+ * Response message for starting the distributed network.
+ */
+message StartResponse {
+  SNStatus status = 1;  // Status of the start operation
+
+  int32 n_nodes = 2;  // Number of nodes that are part of the distributed network
+}
+
+
+/**
+ * Service defining the operations available for the distributed network.
+ */
+service DistNetwork {
+  // RPC method to add a node to the distributed network.
+  rpc AddNode(NodeRequest) returns (NodeResponse) {}
+
+  // RPC method to start the distributed network.
+  rpc StartNetwork(StartRequest) returns (StartResponse) {}
+
+  // RPC method for requesting the global position of the target in a 3D space.
+  rpc GetTargetGlobalPosition(TargetRequest) returns (TargetResponse) {}
+}
