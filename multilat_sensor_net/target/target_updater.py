@@ -8,12 +8,12 @@ Classes:
     TargetUpdater: TargetService class for managing target position updates in 3D space.
 
 Usage Example:
-    from multilat_sensor_net.target import TargetUpdater, TargetObject
+    from multilat_sensor_net.target import TargetUpdater, TargetData
     import time
     import numpy as np
 
-    obj = TargetObject(start_pos=np.array([0., 0., 0.]))
-    updater = TargetUpdater(target_ref=obj, path_file="path.json", freq=40, loop_path=True)
+    obj = TargetData(start_pos=np.array([0., 0., 0.]))
+    updater = TargetUpdater(target_ref=obj, path_file="path.json", freq=40, loop_path=True, verbose=False)
     updater.start()
 
     time.sleep(5)
@@ -34,25 +34,28 @@ class TargetUpdater:
     The updater can loop the trajectory indefinitely if desired.
 
     Attributes:
-        target_ref: A `TargetObject` reference representing the domain logic for managing
+        target_ref: A TargetData reference representing the domain logic for managing
             the target's position in a 3D space.
         path_file: A string containing the path to the JSON file that holds the trajectory waypoints.
         freq: A float indicating the target position updating frequency [Hz].
         loop_path: A bool indicating whether to repeat in loop the trajectory.
         waypoints: A list containing the trajectory waypoints that the target must follow
             (e.g. of waypoint, { "x": 5.0000, "y": 2.5000, "z": 1.2 }).
+        verbose: A boolean flag that enables logging for debugging purposes. If True, detailed
+            logs about actions performed by the components will be printed to the console.
         _thread: A threading daemon thread where the target position is updated based
             on the trajectory waypoints at the specified frequency.
     """
 
-    def __init__(self, target_ref, path_file: str, freq: float, loop_path: bool) -> None:
+    def __init__(self, target_ref, path_file: str, freq: float, loop_path: bool, verbose: bool) -> None:
         """Initializes the TargetUpdater.
 
         Args:
-            target_ref: A `TargetObject` reference for handling domain logic.
+            target_ref: A TargetData reference for handling domain logic.
             path_file: The JSON file path containing the trajectory.
             freq: The update frequency [Hz] for the thread.
             loop_path: Flag indicating whether to loop the waypoints.
+            verbose: Flag indicating whether the classes must produce an output.
 
         Raises:
             ValueError: If the JSON file doesn't contain any waypoints (it's empty).
@@ -67,6 +70,9 @@ class TargetUpdater:
         self.waypoints = self._read_waypoints()
         if not self.waypoints:
             raise ValueError("TargetUpdater: No waypoints found in the specified JSON file.")
+
+        # Logging attributes
+        self.verbose = verbose
 
         # The daemon thread is used to avoid the necessity of joining it to the main thread.
         # When the main thread finished its work, the daemon thread will be automatically stopped,
@@ -107,21 +113,23 @@ class TargetUpdater:
         """Thread body function that updates the target position.
 
         The target position is updated following the trajectory specified by the waypoints.
-        When 'loop_path' is set to True, the function will continue to execute until the main thread is running.
-        When 'loop_path' is set to False, the function will terminate after completing the trajectory once.
+        When loop_path is set to True, the function will continue to execute until the main thread is running.
+        When loop_path is set to False, the function will terminate after completing the trajectory once.
         """
         index = 0
 
         # Computes the time interval
         interval = 1.0 / self.freq
 
-        print("TargetUpdater: Thread started, following path from JSON file.")
+        print("TargetUpdater: Thread started, following trajectory from JSON file")
 
         # Update loop
         while True:
             current_waypoint = self.waypoints[index]
             self.target_ref.set_position(new_pos=current_waypoint)
-            print(f"TargetUpdater: Updated the position to: {current_waypoint[0]:.3f};{current_waypoint[1]:.3f};{current_waypoint[2]:.3f}")
+            if self.verbose:
+                print(f"TargetUpdater: Updated the position to: \
+                    {current_waypoint[0]:.3f};{current_waypoint[1]:.3f};{current_waypoint[2]:.3f}")
 
             # Sleeps to meet the required frequency
             time.sleep(interval)
@@ -131,11 +139,12 @@ class TargetUpdater:
             # Loop path logic
             if index >= len(self.waypoints):
                 if self.loop_path:
-                    index = 0  # restart the path from the beginning
+                    # Restarts the path from the beginning
+                    index = 0
                 else:
                     break
 
-        print("TargetUpdater: Thread stopped.")
+        print("TargetUpdater: Thread stopped")
 
     def start(self) -> None:
         """Starts the thread for updating the target position.

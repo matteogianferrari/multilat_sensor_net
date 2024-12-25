@@ -1,18 +1,18 @@
 """This module implements the TargetService class.
 
 The TargetService class is responsible for handling gRPC requests related to the position
-of a target object in a 3D space. It leverages a `TargetObject` to manage the underlying
+of a target object in a 3D space. It leverages a TargetData instance to manage the underlying
 domain logic for the target's position and provides a gRPC server to handle client requests.
 
 Classes:
-    TargetObject: TargetService class for handling gRPC calls related to target object.
+    TargetService: TargetService class for handling gRPC calls related to target object.
 
 Usage Example:
     import numpy as np
-    from multilat_sensor_net.target import TargetService, TargetObject
+    from multilat_sensor_net.target import TargetService, TargetData
 
-    obj = TargetObject(start_pos=np.array([0., 0., 0.]))
-    service = TargetService(target_ref=obj, socket_addr="localhost:50051")
+    obj = TargetData(start_pos=np.array([0., 0., 0.]))
+    service = TargetService(target_ref=obj, socket_addr="localhost:50051", verbose=False)
     service.serve()
 
     # After some time in the terminal press CTRL + C to terminate process
@@ -33,24 +33,30 @@ class TargetService(target_pb2_grpc.TargetServicer):
     and manages the gRPC server lifecycle.
 
     Attributes:
-        target_ref: A `TargetObject` reference representing the domain logic for managing
+        target_ref: A TargetData reference representing the domain logic for managing
             the target's position in a 3D space.
         socket_addr: A string containing the socket address (e.g., "localhost:50051") where the gRPC server will
             listen for incoming connections.
+        verbose: A boolean flag that enables logging for debugging purposes. If True, detailed
+            logs about actions performed by the components will be printed to the console.
     """
 
-    def __init__(self, target_ref, socket_addr: str) -> None:
+    def __init__(self, target_ref, socket_addr: str, verbose: bool) -> None:
         """Initializes the TargetService.
 
         Args:
-            target_ref: A `TargetObject` reference for handling domain logic.
+            target_ref: A TargetData reference for handling domain logic.
             socket_addr: The socket address where the gRPC server will listen.
+            verbose: Flag indicating whether the classes must produce an output.
         """
         self.target_ref = target_ref
         self.socket_addr = socket_addr
 
+        # Logging attributes
+        self.verbose = verbose
+
     def GetPosition(self, request: target_pb2.GetPositionRequest, context) -> target_pb2.GetPositionResponse:
-        """Handles the `GetPosition` gRPC method.
+        """Handles the GetPosition gRPC method.
 
         Args:
             request: The request message containing the node ID.
@@ -59,7 +65,8 @@ class TargetService(target_pb2_grpc.TargetServicer):
         Returns:
             A response message containing the status and the position [x, y, z] of the target.
         """
-        # print(f"Received GetPosition request from distance sensor {request.node_id}")
+        if self.verbose:
+            print(f"TargetService: Received GetPosition request from Sensor[{request.node_id}]")
 
         # Retrieves the current target position from the domain object
         pos = self.target_ref.get_position()
@@ -78,7 +85,7 @@ class TargetService(target_pb2_grpc.TargetServicer):
         """Starts the gRPC server.
 
         This method initializes the gRPC server, binds the TargetService instance to the server,
-        and starts listening for client requests at the specified `socket_addr`. The server
+        and starts listening for client requests at the specified socket address. The server
         will run indefinitely until terminated.
         """
         # Creates the grpc server

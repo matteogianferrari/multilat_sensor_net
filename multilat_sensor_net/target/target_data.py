@@ -1,15 +1,15 @@
-"""This module implements the TargetObject class.
+"""This module implements the TargetData class.
 
-The TargetObject class is used for representing an object into 3D Euclidean space.
+The TargetData class is used for representing an object into 3D Euclidean space.
 
 Classes:
-    TargetObject: TargetObject class for managing a thread-safe object in a 3D space.
+    TargetData: TargetData class for managing a thread-safe object in a 3D space.
 
 Usage Example:
     import numpy as np
-    from multilat_sensor_net.target import TargetObject
+    from multilat_sensor_net.target import TargetData
 
-    obj = TargetObject(start_pos=np.array([0., 0., 0.]))
+    obj = TargetData(start_pos=np.array([0., 0., 0.]))
     obj.set_position(new_pos=np.array([1., 1., 1.]))
 
     obj.get_position()  # Output: array([1., 1., 1.])
@@ -19,8 +19,8 @@ import threading as th
 import numpy as np
 
 
-class TargetObject:
-    """TargetObject class for managing a thread-safe object in a 3D space.
+class TargetData:
+    """TargetData class for managing a thread-safe object in a 3D space.
 
     This class represents a target object that is moving in a 3D Euclidean space. This class provides methods for
     setting and retrieving the current object position.
@@ -40,7 +40,7 @@ class TargetObject:
     """
 
     def __init__(self, start_pos: np.array) -> None:
-        """Initializes the TargetObject.
+        """Initializes the TargetData.
 
         Args:
             start_pos: A 3D numpy array containing the starting position of the object.
