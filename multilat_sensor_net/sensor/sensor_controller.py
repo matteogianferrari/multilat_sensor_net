@@ -32,7 +32,7 @@ class SensorController:
     updating the Euclidean distance between the sensor and the target's position at a specified frequency.
 
     Attributes:
-        domain_obj: A SensorData instance that encapsulates the sensor's state.
+        data: A SensorData instance that encapsulates the sensor's state.
         updater: A SensorUpdater instance responsible for updating the Euclidean distance between the
             sensor and the target's position. It operates in a separate thread at a specified frequency.
     """
@@ -58,11 +58,11 @@ class SensorController:
             verbose: Flag indicating whether the classes must produce an output.
         """
         # Domain object
-        self.domain_obj = SensorData()
+        self.data = SensorData()
 
         # Measuring thread
         self.updater = SensorUpdater(
-            sensor_ref=self.domain_obj,
+            data_ref=self.data,
             node_id=node_id,
             pos=pos,
             service_addr=service_addr,
@@ -86,4 +86,4 @@ class SensorController:
         Returns:
             A float indicating the most recent distance measurement in meters.
         """
-        return self.domain_obj.get_distance()
+        return self.data.get_distance()

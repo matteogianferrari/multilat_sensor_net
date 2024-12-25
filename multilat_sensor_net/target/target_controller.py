@@ -35,7 +35,7 @@ class TargetController:
     target's position based on predefined trajectories.
 
     Attributes:
-        domain_obj: A TargetData instance that encapsulates the target's state.
+        data: A TargetData instance that encapsulates the target's state.
         service: A TargetService instance that manages the gRPC server, allowing external
             clients to interact with the target over the network.
         updater: A TargetUpdater instance responsible for updating the target's position
@@ -63,14 +63,14 @@ class TargetController:
                 Defaults to False.
         """
         # Domain object
-        self.domain_obj = TargetData(start_pos=np.array([0., 0., 0.]))
+        self.data = TargetData(start_pos=np.array([0., 0., 0.]))
 
         # gRPC service
-        self.service = TargetService(target_ref=self.domain_obj, socket_addr=socket_addr, verbose=verbose)
+        self.service = TargetService(data_ref=self.data, socket_addr=socket_addr, verbose=verbose)
 
         # Position updater
         self.updater = TargetUpdater(
-            target_ref=self.domain_obj,
+            data_ref=self.data,
             path_file=path_file,
             freq=freq,
             loop_path=loop_path,

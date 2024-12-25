@@ -15,7 +15,7 @@ Usage Example:
 
     obj = SensorData()
     updater = SensorUpdater(
-        sensor_ref=obj,
+        data_ref=obj,
         node_id=1,
         pos=np.array([2.0, 3.0, 4.0]),
         service_addr="localhost:50051",
@@ -43,7 +43,7 @@ class SensorUpdater:
     The measurement loop is performed in a separate daemon thread.
 
     Attributes:
-        sensor_ref: A SensorData reference representing the domain logic for managing
+        data_ref: A SensorData reference representing the domain logic for managing
             the sensor's position and distance to the target.
         node_id: An integer indicating the ID of the related node.
         pos: A 3D numpy array indicating the distance sensor position [x, y, z].
@@ -59,7 +59,7 @@ class SensorUpdater:
 
     def __init__(
             self,
-            sensor_ref,
+            data_ref,
             node_id: int,
             pos: np.array,
             service_addr: str,
@@ -70,7 +70,7 @@ class SensorUpdater:
         """Initializes the SensorUpdater.
 
         Args:
-            sensor_ref: A SensorData reference for handling domain logic.
+            data_ref: A SensorData reference for handling domain logic.
             node_id: The ID related to the node that possesses the distance sensor.
             pos: A 3D numpy array containing the position of the distance sensor.
             service_addr: The socket address (e.g., "localhost:50051") where the gRPC server is
@@ -79,7 +79,7 @@ class SensorUpdater:
             freq: The frequency [Hz] at which distance measurements are taken.
             verbose: Flag indicating whether the classes must produce an output.
         """
-        self.sensor_ref = sensor_ref
+        self.data_ref = data_ref
 
         # Sensor attributes
         self.node_id = node_id
@@ -155,7 +155,7 @@ class SensorUpdater:
             dist = self._compute_distance(target_pos=np.array([response.x, response.y, response.z]))
 
             # Updates the measured distance in the domain object
-            self.sensor_ref.set_distance(new_distance=dist)
+            self.data_ref.set_distance(new_distance=dist)
 
             # Sleeps until next interval to match the specified frequency
             elapsed = time.time() - start_time

@@ -12,7 +12,7 @@ Usage Example:
     from multilat_sensor_net.target import TargetService, TargetData
 
     obj = TargetData(start_pos=np.array([0., 0., 0.]))
-    service = TargetService(target_ref=obj, socket_addr="localhost:50051", verbose=False)
+    service = TargetService(data_ref=obj, socket_addr="localhost:50051", verbose=False)
     service.serve()
 
     # After some time in the terminal press CTRL + C to terminate process
@@ -33,7 +33,7 @@ class TargetService(target_pb2_grpc.TargetServicer):
     and manages the gRPC server lifecycle.
 
     Attributes:
-        target_ref: A TargetData reference representing the domain logic for managing
+        data_ref: A TargetData reference representing the domain logic for managing
             the target's position in a 3D space.
         socket_addr: A string containing the socket address (e.g., "localhost:50051") where the gRPC server will
             listen for incoming connections.
@@ -41,15 +41,15 @@ class TargetService(target_pb2_grpc.TargetServicer):
             logs about actions performed by the components will be printed to the console.
     """
 
-    def __init__(self, target_ref, socket_addr: str, verbose: bool) -> None:
+    def __init__(self, data_ref, socket_addr: str, verbose: bool) -> None:
         """Initializes the TargetService.
 
         Args:
-            target_ref: A TargetData reference for handling domain logic.
+            data_ref: A TargetData reference for handling domain logic.
             socket_addr: The socket address where the gRPC server will listen.
             verbose: Flag indicating whether the classes must produce an output.
         """
-        self.target_ref = target_ref
+        self.data_ref = data_ref
         self.socket_addr = socket_addr
 
         # Logging attributes
@@ -69,7 +69,7 @@ class TargetService(target_pb2_grpc.TargetServicer):
             print(f"TargetService: Received GetPosition request from Sensor[{request.node_id}]")
 
         # Retrieves the current target position from the domain object
-        pos = self.target_ref.get_position()
+        pos = self.data_ref.get_position()
 
         # Creates the response message
         res = target_pb2.GetPositionResponse(

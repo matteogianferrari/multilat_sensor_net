@@ -13,7 +13,7 @@ Usage Example:
     import numpy as np
 
     obj = TargetData(start_pos=np.array([0., 0., 0.]))
-    updater = TargetUpdater(target_ref=obj, path_file="path.json", freq=40, loop_path=True, verbose=False)
+    updater = TargetUpdater(data_ref=obj, path_file="path.json", freq=40, loop_path=True, verbose=False)
     updater.start()
 
     time.sleep(5)
@@ -34,7 +34,7 @@ class TargetUpdater:
     The updater can loop the trajectory indefinitely if desired.
 
     Attributes:
-        target_ref: A TargetData reference representing the domain logic for managing
+        data_ref: A TargetData reference representing the domain logic for managing
             the target's position in a 3D space.
         path_file: A string containing the path to the JSON file that holds the trajectory waypoints.
         freq: A float indicating the target position updating frequency [Hz].
@@ -47,11 +47,11 @@ class TargetUpdater:
             on the trajectory waypoints at the specified frequency.
     """
 
-    def __init__(self, target_ref, path_file: str, freq: float, loop_path: bool, verbose: bool) -> None:
+    def __init__(self, data_ref, path_file: str, freq: float, loop_path: bool, verbose: bool) -> None:
         """Initializes the TargetUpdater.
 
         Args:
-            target_ref: A TargetData reference for handling domain logic.
+            data_ref: A TargetData reference for handling domain logic.
             path_file: The JSON file path containing the trajectory.
             freq: The update frequency [Hz] for the thread.
             loop_path: Flag indicating whether to loop the waypoints.
@@ -60,7 +60,7 @@ class TargetUpdater:
         Raises:
             ValueError: If the JSON file doesn't contain any waypoints (it's empty).
         """
-        self.target_ref = target_ref
+        self.data_ref = data_ref
 
         # Trajectory attributes
         self.path_file = path_file
@@ -126,7 +126,7 @@ class TargetUpdater:
         # Update loop
         while True:
             current_waypoint = self.waypoints[index]
-            self.target_ref.set_position(new_pos=current_waypoint)
+            self.data_ref.set_position(new_pos=current_waypoint)
             if self.verbose:
                 print(f"TargetUpdater: Updated the position to: \
                     {current_waypoint[0]:.3f};{current_waypoint[1]:.3f};{current_waypoint[2]:.3f}")
