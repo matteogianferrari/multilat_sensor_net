@@ -134,7 +134,7 @@ class SensorUpdater:
         # Computes the time interval
         interval = 1.0 / self.freq
 
-        print(f"Sensor[{self.node_id}]: Starting at {self.freq} Hz")
+        print(f"SensorUpdater[{self.node_id}]: Starting at {self.freq} Hz")
 
         # Measurement loop
         while True:
@@ -148,7 +148,7 @@ class SensorUpdater:
                 response = self._target_stub.GetPosition(request)
             except grpc.RpcError as rpc_error:
                 # When the gRPC servicer is stopped the measurement thread is stopped
-                print(f"Sensor[{self.node_id}]: Error during gRPC communication with target")
+                print(f"SensorUpdater[{self.node_id}]: Error during gRPC communication with target")
                 break
 
             # Computes the distance
@@ -163,7 +163,7 @@ class SensorUpdater:
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
-        print(f"Sensor[{self.node_id}]: Stopped.")
+        print(f"SensorUpdater[{self.node_id}]: Stopped")
 
     def start(self) -> None:
         """Start the measurement loop in a separate thread.
