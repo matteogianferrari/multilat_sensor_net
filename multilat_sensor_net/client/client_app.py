@@ -23,7 +23,7 @@ Usage Example:
     obj.run()
 """
 
-from multilat_sensor_net.generated import dist_network_pb2, dist_network_pb2_grpc
+from multilat_sensor_net.generated import network_pb2, network_pb2_grpc
 from multilat_sensor_net.client import Tracker
 import numpy as np
 import grpc
@@ -78,7 +78,7 @@ class ClientApp:
 
         # gRPC attributes
         self._channel = grpc.insecure_channel(service_addr)
-        self._network_stub = dist_network_pb2_grpc.DistNetworkStub(self._channel)
+        self._network_stub = network_pb2_grpc.NetworkStub(self._channel)
 
     def _start_network(self) -> bool:
         """Starts the distributed network via gRPC.
@@ -87,12 +87,12 @@ class ClientApp:
              True if the network was successfully started; False otherwise.
         """
         # Creates a request message
-        request = dist_network_pb2.StartRequest(client_id=self.client_id)
+        request = network_pb2.StartRequest(client_id=self.client_id)
 
         # Ask the distributed network to start operating using the gRPC function
         response = self._network_stub.StartNetwork(request)
 
-        return response.status == dist_network_pb2.SS_OK
+        return response.status == network_pb2.SS_OK
 
     def _track_target(self) -> None:
         """Tracks the target position using the tracker and the distributed network.
@@ -104,7 +104,7 @@ class ClientApp:
         When a keyboard interrupt is identified, the function stops the distributed network.
         """
         # Create a request message
-        request = dist_network_pb2.TargetRequest(client_id=self.client_id)
+        request = network_pb2.TargetRequest(client_id=self.client_id)
 
         try:
             with open(self.output_trajectory_path, 'a') as file:

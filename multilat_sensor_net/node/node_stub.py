@@ -19,7 +19,7 @@ Usage Example:
     obj.add_node_to_network()   # Output: True
 """
 
-from multilat_sensor_net.generated import dist_network_pb2, dist_network_pb2_grpc
+from multilat_sensor_net.generated import network_pb2, network_pb2_grpc
 import numpy as np
 import grpc
 
@@ -72,7 +72,7 @@ class NodeStub:
 
         # gRPC stub attributes
         self._channel = grpc.insecure_channel(network_service_addr)
-        self._network_stub = dist_network_pb2_grpc.DistNetworkStub(self._channel)
+        self._network_stub = network_pb2_grpc.NetworkStub(self._channel)
 
     def add_node_to_network(self) -> bool:
         """Adds the node to the distributed network via gRPC.
@@ -88,7 +88,7 @@ class NodeStub:
             RuntimeError: If the node fails to register with the distributed network.
         """
         # Creates a request message
-        request = dist_network_pb2.NodeRequest(
+        request = network_pb2.NodeRequest(
             node_id=self.node_id,
             x=self.pos[0],
             y=self.pos[1],
@@ -105,9 +105,9 @@ class NodeStub:
             return False
 
         if self.verbose:
-            if response.status == dist_network_pb2.NS_OK:
+            if response.status == network_pb2.NS_OK:
                 print(f"NodeStub[{self.node_id}]: Added to the distributed network")
             else:
                 print(f"NodeStub[{self.node_id}]: Cannot be added to the distributed network")
 
-        return response.status == dist_network_pb2.NS_OK
+        return response.status == network_pb2.NS_OK

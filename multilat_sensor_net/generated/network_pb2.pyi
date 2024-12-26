@@ -65,10 +65,16 @@ class NodeRequest(_message.Message):
     def __init__(self, node_id: _Optional[int] = ..., x: _Optional[float] = ..., y: _Optional[float] = ..., z: _Optional[float] = ..., bind_address: _Optional[str] = ...) -> None: ...
 
 class NodeResponse(_message.Message):
-    __slots__ = ("status",)
+    __slots__ = ("status", "x", "y", "z")
     STATUS_FIELD_NUMBER: _ClassVar[int]
+    X_FIELD_NUMBER: _ClassVar[int]
+    Y_FIELD_NUMBER: _ClassVar[int]
+    Z_FIELD_NUMBER: _ClassVar[int]
     status: NodeStatus
-    def __init__(self, status: _Optional[_Union[NodeStatus, str]] = ...) -> None: ...
+    x: float
+    y: float
+    z: float
+    def __init__(self, status: _Optional[_Union[NodeStatus, str]] = ..., x: _Optional[float] = ..., y: _Optional[float] = ..., z: _Optional[float] = ...) -> None: ...
 
 class StartRequest(_message.Message):
     __slots__ = ("client_id",)

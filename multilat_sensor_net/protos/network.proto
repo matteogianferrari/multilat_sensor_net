@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 // Package name to avoid naming conflicts
-package dist_network;
+package network;
 
 
 /**
@@ -95,7 +95,7 @@ message StartResponse {
 /**
  * Service defining the operations available for the distributed network.
  */
-service DistNetwork {
+service Network {
   // RPC method to add a node to the distributed network.
   rpc AddNode(NodeRequest) returns (NodeResponse) {}
 

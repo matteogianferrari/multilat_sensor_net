@@ -30,7 +30,7 @@ Usage Example:
     # After some time in the terminal press CTRL + C to terminate process
 """
 
-from multilat_sensor_net.generated import dist_network_pb2_grpc, dist_network_pb2
+from multilat_sensor_net.generated import network_pb2_grpc, network_pb2
 from concurrent import futures
 import numpy as np
 import signal
@@ -38,7 +38,7 @@ import grpc
 import sys
 
 
-class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
+class NetworkService(network_pb2_grpc.NetworkServicer):
     """NetworkService class for handling gRPC calls related to a distributed network.
 
     This class implements the gRPC servicer defined in the protobuf file "network.proto".
@@ -77,7 +77,7 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         # Logging attributes
         self.verbose = verbose
 
-    def AddNode(self, request: dist_network_pb2.NodeRequest, context) -> dist_network_pb2.NodeResponse:
+    def AddNode(self, request: network_pb2.NodeRequest, context) -> network_pb2.NodeResponse:
         """Handles the AddNode gRPC method.
 
         Args:
@@ -96,7 +96,7 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         # Edge case
         # Checks if the distributed network is already active
         if self.data_ref.get_is_active():
-            res = dist_network_pb2.NodeResponse(status=dist_network_pb2.NS_ERROR)
+            res = network_pb2.NodeResponse(status=network_pb2.NS_ERROR)
             if self.verbose:
                 print(f"NetworkService: Cannot add Node[{request.node_id}] because the network is already active")
 
@@ -108,17 +108,17 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         # Checks on result
         if ret:
             # Creates the response message
-            res = dist_network_pb2.NodeResponse(status=dist_network_pb2.NS_OK)
+            res = network_pb2.NodeResponse(status=network_pb2.NS_OK)
             if self.verbose:
                 print(f"NetworkService: Node[{request.node_id}] added to the network")
         else:
-            res = dist_network_pb2.NodeResponse(status=dist_network_pb2.NS_ERROR)
+            res = network_pb2.NodeResponse(status=network_pb2.NS_ERROR)
             if self.verbose:
                 print(f"NetworkService: Node[{request.node_id}] already present in the network")
 
         return res
 
-    def StartNetwork(self, request: dist_network_pb2.StartRequest, context) -> dist_network_pb2.StartResponse:
+    def StartNetwork(self, request: network_pb2.StartRequest, context) -> network_pb2.StartResponse:
         """Handles the StartNetwork gRPC method.
 
         Args:
@@ -135,7 +135,7 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         # Edge case
         # Checks if the distributed network is already active
         if self.data_ref.get_is_active():
-            res = dist_network_pb2.StartResponse(status=dist_network_pb2.SS_ERROR)
+            res = network_pb2.StartResponse(status=network_pb2.SS_ERROR)
             if self.verbose:
                 print(f"NetworkService: Cannot start the network because is already active")
 
@@ -155,18 +155,14 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         self.data_ref.set_is_active(state=True)
 
         # Creates the response message
-        res = dist_network_pb2.StartResponse(status=dist_network_pb2.SS_OK, n_nodes=n_nodes)
+        res = network_pb2.StartResponse(status=network_pb2.SS_OK, n_nodes=n_nodes)
 
         if self.verbose:
             print(f"NetworkService: Network started successfully")
 
         return res
 
-    def GetTargetGlobalPosition(
-            self,
-            request: dist_network_pb2.TargetRequest,
-            context
-    ) -> dist_network_pb2.TargetResponse:
+    def GetTargetGlobalPosition(self, request: network_pb2.TargetRequest, context) -> network_pb2.TargetResponse:
         """Handles the GetTargetGlobalPosition gRPC method.
 
         Args:
@@ -183,7 +179,7 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         # Edge case
         # Checks if the distributed network is not active
         if not self.data_ref.get_is_active():
-            res = dist_network_pb2.TargetResponse(status=dist_network_pb2.TS_ERROR, x=np.inf, y=np.inf, z=np.inf)
+            res = network_pb2.TargetResponse(status=network_pb2.TS_ERROR, x=np.inf, y=np.inf, z=np.inf)
             if self.verbose:
                 print(f"NetworkService: Cannot retrieve target global position because the network is not active")
 
@@ -196,8 +192,8 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         target_pos = self.estimator_ref.estimate_position(distances=distances)
 
         # Creates the response message
-        res = dist_network_pb2.TargetResponse(
-            status=dist_network_pb2.TS_OK,
+        res = network_pb2.TargetResponse(
+            status=network_pb2.TS_OK,
             x=target_pos[0],
             y=target_pos[1],
             z=target_pos[2]
@@ -219,7 +215,7 @@ class NetworkService(dist_network_pb2_grpc.DistNetworkServicer):
         server = grpc.server(futures.ThreadPoolExecutor())
 
         # Binds the NetworkService instance to the server
-        dist_network_pb2_grpc.add_DistNetworkServicer_to_server(self, server)
+        network_pb2_grpc.add_NetworkServicer_to_server(self, server)
 
         # Adds an insecure port to listen for requests
         server.add_insecure_port(self.socket_addr)
