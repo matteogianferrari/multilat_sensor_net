@@ -1,0 +1,32 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+box Network #6897BB
+participant "NetworkDealer" as NetworkDealer
+end box
+
+!pragma teoz true
+box Node #FFF68F
+participant "NodeRouter" as NodeRouter
+box Sensor
+participant "SensorController" as SensorController
+end box
+end box
+
+== ZeroMQ GetDistance between Network and Node ==
+' NetworkDealer sends a message containing GetDistance to all the nodes
+' in the distributed network
+NetworkDealer -> NodeRouter: msg(identity:GetDistance)
+activate NetworkDealer
+
+activate NodeRouter
+
+NodeRouter -> SensorController: get_distance()
+activate SensorController
+return distance
+
+return msg(identity:distance)
+deactivate NetworkDealer
+
+@enduml

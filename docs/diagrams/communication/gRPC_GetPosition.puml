@@ -1,0 +1,35 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+box Sensor #BADA55
+participant "SensorUpdater" as SensorUpdater
+end box
+
+box Target #FF7373
+participant "TargetService" as TargetService
+participant "TargetData" as TargetData
+end box
+
+== gRPC GetPosition between Sensor and Target ==
+' SensorUpdater requests GetPosition RPC sending a GetPositionRequest message
+' containing the requesting node ID
+SensorUpdater -> TargetService: GetPosition(GetPositionRequest(node_id))
+activate SensorUpdater
+
+' TargetService receives the RPC request for GetPosition
+activate TargetService
+
+' TargetService gets the target position from TargetData
+TargetService -> TargetData: get_position()
+activate TargetData
+
+' TargetData returns the target position
+return [x, y, z]
+
+' TargetService responds to SensorUpdater sending a GetPositionResponse message
+' containing the request status and the target position
+return GetPositionResponse(status, x, y, z)
+deactivate SensorUpdater
+
+@enduml

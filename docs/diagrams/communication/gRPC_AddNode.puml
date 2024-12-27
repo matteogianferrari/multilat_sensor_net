@@ -1,0 +1,58 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+box Node #6897BB
+participant "NodeStub" as NodeStub
+end box
+
+box Network #FFF68F
+participant "NetworkService" as NetworkService
+participant "NetworkData" as NetworkData
+end box
+== gRPC AddNode between Node and Network ==
+
+== is_active=False ==
+' NodeStub requests AddNode RPC sending a NodeRequest message
+' containing the requesting node ID
+NodeStub -> NetworkService: AddNode(NodeRequest(node_id, x, y, z, bind_address))
+activate NodeStub
+
+' NetworkService receives the RPC request for AddNode
+activate NetworkService
+
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+return False
+
+' NetworkService adds the node information to the NetworkData
+NetworkService -> NetworkData: add_node(node_id, [x, y, z], bind_address)
+activate NetworkData
+
+' NetworkData returns the status of the operation
+return Returns True | False
+
+' NetworkService responds to NodeStub sending a NodeResponse message
+' containing the operation status
+return NodeResponse(status)
+deactivate NodeStub
+
+== is_active=True ==
+' NodeStub requests AddNode RPC sending a NodeRequest message
+' containing the requesting node ID
+NodeStub -> NetworkService: AddNode(NodeRequest(node_id, x, y, z, bind_address))
+activate NodeStub
+
+' NetworkService receives the RPC request for AddNode
+activate NetworkService
+
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+return True
+
+' NetworkService responds to NodeStub sending a NodeResponse message
+' containing the operation status
+return NodeResponse(status)
+deactivate NodeStub
+
+@enduml

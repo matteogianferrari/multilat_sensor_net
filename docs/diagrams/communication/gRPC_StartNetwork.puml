@@ -1,0 +1,77 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+box Client #6897BB
+participant "ClientApp" as ClientApp
+end box
+
+!pragma teoz true
+box Network #FFF68F
+participant "NetworkService" as NetworkService
+participant "NetworkData" as NetworkData
+participant "NetworkDealer" as NetworkDealer
+box Estimator
+participant "Multilateration" as Multilateration
+end box
+end box
+== gRPC StartNetwork between Client and Network ==
+
+== is_active=False ==
+' ClientApp requests StartNetwork RPC sending a StartRequest message
+' containing the requesting client ID
+ClientApp -> NetworkService: StartNetwork(StartRequest(client_id))
+activate ClientApp
+
+' NetworkService receives the RPC request for StartNetwork
+activate NetworkService
+
+NetworkService -> NetworkData: get_nodes_info()
+activate NetworkData
+return nodes_info
+
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+return False
+
+NetworkService -> NetworkDealer: connect(nodes_info)
+activate NetworkDealer
+return
+
+NetworkService -> Multilateration: set_sensor_positions(nodes_info)
+activate Multilateration
+return
+
+' NetworkService sets the state of the network to active in NetworkData
+NetworkService -> NetworkData: set_is_active(state)
+activate NetworkData
+return
+
+' NetworkService responds to ClientApp sending a StartResponse message
+' containing the operation status and the number of nodes in the network
+return NodeResponse(status, n_nodes)
+deactivate ClientApp
+
+== is_active=True ==
+' ClientApp requests StartNetwork RPC sending a StartRequest message
+' containing the requesting client ID
+ClientApp -> NetworkService: StartNetwork(StartRequest(client_id))
+activate ClientApp
+
+' NetworkService receives the RPC request for StartNetwork
+activate NetworkService
+
+NetworkService -> NetworkData: get_nodes_info()
+activate NetworkData
+return nodes_info
+
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+return True
+
+' NetworkService responds to ClientApp sending a StartResponse message
+' containing the operation status and the number of nodes in the network
+return NodeResponse(status, n_nodes)
+deactivate ClientApp
+
+@enduml

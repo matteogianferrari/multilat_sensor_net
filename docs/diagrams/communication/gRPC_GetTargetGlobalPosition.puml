@@ -1,0 +1,67 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+box Client #6897BB
+participant "ClientApp" as ClientApp
+end box
+
+!pragma teoz true
+box Network #FFF68F
+participant "NetworkService" as NetworkService
+participant "NetworkData" as NetworkData
+participant "NetworkDealer" as NetworkDealer
+box Estimator
+participant "Multilateration" as Multilateration
+end box
+end box
+== gRPC GetTargetGlobalPosition between Client and Network ==
+
+== is_active=True ==
+' ClientApp requests GetTargetGlobalPosition RPC sending a TargetRequest message
+' containing the requesting client ID
+ClientApp -> NetworkService: GetTargetGlobalPosition(TargetRequest(client_id))
+activate ClientApp
+
+' NetworkService receives the RPC request for GetTargetGlobalPosition
+activate NetworkService
+
+' NetworkService
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+return True
+
+' NetworkService sets the state of the network to active in NetworkData
+NetworkService -> NetworkDealer: request_distances()
+activate NetworkDealer
+return distances
+
+NetworkService -> Multilateration: estimate_position(distances)
+activate Multilateration
+return target_pos
+
+' NetworkService responds to ClientApp sending a TargetResponse message
+' containing the operation status and the number of nodes in the network
+return TargetResponse(status, x, y, z)
+deactivate ClientApp
+
+== is_active=False ==
+' ClientApp requests GetTargetGlobalPosition RPC sending a TargetRequest message
+' containing the requesting client ID
+ClientApp -> NetworkService: GetTargetGlobalPosition(TargetRequest(client_id))
+activate ClientApp
+
+' NetworkService receives the RPC request for GetTargetGlobalPosition
+activate NetworkService
+
+' NetworkService
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+return False
+
+' NetworkService responds to ClientApp sending a TargetResponse message
+' containing the operation status and the number of nodes in the network
+return TargetResponse(status, x, y, z)
+deactivate ClientApp
+
+@enduml
