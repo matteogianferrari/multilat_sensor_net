@@ -115,7 +115,14 @@ class ClientApp:
                 while True:
                     # Asks the distributed network to send the target global position using gRPC
                     response = self._network_stub.GetTargetGlobalPosition(request)
-                    # TODO: edge case handle error
+
+                    # Edge case
+                    # Check if the network is not active
+                    if response.status == network_pb2.TS_ERROR:
+                        if self.verbose:
+                            print(f"ClientApp: Cannot retrieve target position because the network is not active")
+
+                        return
 
                     # Creates the measurement array from the response
                     measurement = np.array([response.x, response.y, response.z])
