@@ -1,0 +1,75 @@
+@startuml
+
+class NetworkController {
+    + data: NetworkData
+    + dealer: NetworkDealer
+    + estimator: Multilateration
+    + service: NetworkService
+    + NetworkController(socket_addr: str, verbose: bool)
+    + start(): void
+}
+
+class NetworkData {
+    - _nodes: dict
+    - _is_active: bool
+    - _synch_nodes_r: Semaphore
+    - _synch_nodes_w: Semaphore
+    - _mutex_nodes: Lock
+    - _blocked_nodes_r: int
+    - _blocked_nodes_w: int
+    - _running_nodes_r: int
+    - _running_nodes_w: int
+    - _synch_active_r: Semaphore
+    - _synch_active_w: Semaphore
+    - _mutex_active: Lock
+    - _blocked_active_r: int
+    - _blocked_active_w: int
+    - _running_active_r: int
+    - _running_active_w: int
+    + NetworkData()
+    + set_is_active(state: bool): void
+    + get_is_active(): bool
+    + get_nodes_info(): dict
+    + add_node(node_id: int, node_pos: numpy.array, node_address: str): bool
+}
+
+class NetworkDealer {
+    + n_nodes: int
+    + verbose: bool
+    - _socket: ZmqSocket
+    + NetworkDealer(verbose: bool)
+    + connect(nodes_info: dict): void
+    + request_distances(): dict
+}
+
+class NetworkService {
+    + data_ref: NetworkData
+    + dealer_ref: NetworkDealer
+    + estimator_ref: Multilateration
+    + socket_addr: str
+    + verbose: bool
+    + NetworkService(data_ref, dealer_ref, estimator_ref, socket_addr: str, verbose: bool)
+    + serve(): void
+    + AddNode(request, context): NodeResponse
+    + StartNetwork(request, context): StartResponse
+    + GetTargetGlobalPosition(request, context): TargetResponse
+}
+
+class Multilateration {
+    + verbose: bool
+    - _sensor_positions: dict
+    - _initial_guess: numpy.array
+    + Multilateration(verbose: bool)
+    + set_sensor_positions(nodes_info: dict): void
+    + estimate_position(distances: dict): numpy.array
+}
+
+NetworkController *-- NetworkData
+NetworkController *-- NetworkDealer
+NetworkController *-- Multilateration
+NetworkController *-- NetworkService
+NetworkService --> NetworkData
+NetworkService --> NetworkDealer
+NetworkService --> Multilateration
+
+@enduml

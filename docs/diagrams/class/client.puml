@@ -1,0 +1,52 @@
+@startuml
+
+class ClientApp {
+    + client_id: int
+    + verbose: bool
+    + freq: float
+    + output_trajectory_path: str
+    - _tracker: Tracker
+    - _channel: grpc.Channel
+    - _network_stub: NetworkStub
+    + ClientApp(client_id: int, service_addr: str, freq: float, output_trajectory_path: str, verbose: bool)
+    + run(): void
+    - _start_network(): bool
+    - _track_target(): void
+    - _stop_network(): void
+}
+
+class Tracker {
+    - _kalman: KalmanFilter
+    - _is_initialized: bool
+    - _prev_time: float
+    - _pred_pos: numpy.array
+    + Tracker()
+    + tracker_core(measurement: numpy.array): void
+    + get_predicted_position(): numpy.array
+}
+
+class KalmanFilter {
+    - _x: numpy.array
+    - _P: numpy.matrix
+    - _F: numpy.matrix
+    - _Q: numpy.matrix
+    - _R: numpy.matrix
+    - _y: numpy.array
+    - _S: numpy.matrix
+    - _K: numpy.matrix
+    - _H: numpy.matrix
+    - _noise_ax: float
+    - _noise_ay: float
+    - _noise_az: float
+    + KalmanFilter()
+    + set_state(pos: numpy.array): void
+    + get_state(): numpy.array
+    + update_matrices(dt: float): void
+    + predict(): void
+    + update(z: numpy.array): void
+}
+
+ClientApp *-- Tracker
+Tracker *-- KalmanFilter
+
+@enduml

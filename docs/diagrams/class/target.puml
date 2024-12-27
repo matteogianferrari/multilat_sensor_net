@@ -1,0 +1,54 @@
+@startuml
+
+class TargetController {
+    + data: TargetData
+    + service: TargetService
+    + updater: TargetUpdater
+    + TargetController(socket_addr: str, path_file: str, freq: float, loop_path: bool, verbose: bool)
+    + start(): void
+}
+
+class TargetData {
+    - _pos: numpy.array
+    - _synch_r: Semaphore
+    - _synch_w: Semaphore
+    - _mutex: Lock
+    - _blocked_r: int
+    - _blocked_w: int
+    - _running_r: int
+    - _running_w: int
+    + TargetData(start_pos: numpy.array)
+    + get_position(): numpy.array
+    + set_position(new_pos: numpy.array): void
+}
+
+class TargetService {
+    + data_ref: TargetData
+    + socket_addr: str
+    + verbose: bool
+    + TargetService(data_ref: TargetData, socket_addr: str, verbose: bool)
+    + GetPosition(request, context)
+    + serve(): void
+}
+
+class TargetUpdater {
+    + data_ref: TargetData
+    + path_file: str
+    + freq: float
+    + loop_path: bool
+    + waypoints: list
+    + verbose: bool
+    - _thread: Thread
+    + TargetUpdater(data_ref: TargetData, path_file: str, freq: float, loop_path: bool, verbose: bool)
+    + start(): void
+    - _read_waypoints(): list
+    - _run(): void
+}
+
+TargetController *-- TargetData
+TargetController *-- TargetService
+TargetController *-- TargetUpdater
+TargetService --> TargetData
+TargetUpdater --> TargetData
+
+@enduml

@@ -1,0 +1,72 @@
+@startuml
+
+class SensorController {
+    + data: SensorData
+    + updater: SensorUpdater
+    + SensorController(node_id: int, pos: numpy.array, service_addr: str, var: float, freq: float, verbose: bool)
+    + start(): void
+    + get_distance(): float
+}
+
+class SensorData {
+    - _distance: float
+    - _mutex: Lock
+    + SensorData()
+    + get_distance(): float
+    + set_distance(new_distance: float): void
+}
+
+class SensorUpdater {
+    + data_ref: SensorData
+    + node_id: int
+    + pos: numpy.array
+    + freq: float
+    + var: float
+    + verbose: bool
+    - _channel: grpc.Channel
+    - _target_stub: TargetStub
+    - _thread: Thread
+    + SensorUpdater(data_ref: SensorData, node_id: int, pos: numpy.array, service_addr: str, var: float, freq: float, verbose: bool)
+    + start(): void
+    - _compute_distance(target_pos: numpy.array): float
+    - _run(): void
+}
+
+class NodeController {
+    + sensor: SensorController
+    + node_stub: NodeStub
+    + node_router: NodeRouter
+    + NodeController(node_id: int, pos: numpy.array, bind_address: str, target_service_addr: str, network_service_addr: str, verbose: bool)
+    + start(): void
+}
+
+class NodeStub {
+    + node_id: int
+    + pos: numpy.array
+    + bind_address: str
+    + verbose: bool
+    - _channel: grpc.Channel
+    - _network_stub: NetworkStub
+    + NodeStub(node_id: int, pos: numpy.array, bind_address: str, network_service_addr: str, verbose: bool)
+    + add_node_to_network(): bool
+}
+
+class NodeRouter {
+    + sensor_ref: SensorController
+    + node_id: int
+    + bind_address: str
+    + verbose: bool
+    - _socket: ZmqSocket
+    + NodeRouter(sensor_ref: SensorController, node_id: int, bind_address: str, verbose: bool)
+    + start(): void
+}
+
+SensorController *-- SensorData
+SensorController *-- SensorUpdater
+NodeController *-- SensorController
+NodeController *-- NodeStub
+NodeController *-- NodeRouter
+SensorUpdater --> SensorData
+NodeRouter --> SensorController
+
+@enduml
