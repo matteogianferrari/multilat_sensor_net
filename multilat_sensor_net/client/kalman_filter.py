@@ -136,7 +136,7 @@ class KalmanFilter:
         Returns:
             A 3D numpy array containing the tracked object position [x, y, z].
         """
-        return self._x[:2]
+        return self._x[:3]
     
     def update_matrices(self, dt) -> None:
         """Updates the matrices that are dependent on a delta time.

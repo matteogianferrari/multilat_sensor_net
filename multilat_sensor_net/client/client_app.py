@@ -115,6 +115,7 @@ class ClientApp:
                 while True:
                     # Asks the distributed network to send the target global position using gRPC
                     response = self._network_stub.GetTargetGlobalPosition(request)
+                    # TODO: edge case handle error
 
                     # Creates the measurement array from the response
                     measurement = np.array([response.x, response.y, response.z])

@@ -125,11 +125,10 @@ class TargetUpdater:
 
         # Update loop
         while True:
-            current_waypoint = self.waypoints[index]
-            self.data_ref.set_position(new_pos=current_waypoint)
-            if self.verbose:
-                print(f"TargetUpdater: Updated the position to: \
-                    {current_waypoint[0]:.3f};{current_waypoint[1]:.3f};{current_waypoint[2]:.3f}")
+            curr_pos = self.waypoints[index]
+            self.data_ref.set_position(new_pos=curr_pos)
+
+            print(f"TargetUpdater: Updated the position to: {curr_pos[0]:.3f};{curr_pos[1]:.3f};{curr_pos[2]:.3f}")
 
             # Sleeps to meet the required frequency
             time.sleep(interval)

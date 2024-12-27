@@ -237,5 +237,4 @@ class NetworkService(network_pb2_grpc.NetworkServicer):
 
         server.wait_for_termination()
 
-# TODO: test is_active for both addnode, startnetwork, gettargetposition
 # TODO: stop network (is active va disattivato)
