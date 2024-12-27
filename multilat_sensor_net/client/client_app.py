@@ -114,6 +114,8 @@ class ClientApp:
                 # Main loop
                 while True:
                     # Asks the distributed network to send the target global position using gRPC
+                    # The function call will block execution until it receives a response
+                    # from the server or encounters an error (like a timeout)
                     response = self._network_stub.GetTargetGlobalPosition(request)
 
                     # Edge case

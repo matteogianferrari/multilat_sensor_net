@@ -45,6 +45,10 @@ class NetworkService(network_pb2_grpc.NetworkServicer):
     It provides methods for serving client and nodes requests to various function
     and manages the gRPC server lifecycle.
 
+    The gRPC server manages a pool of worker threads. Each incoming request is assigned
+    to one of these threads for processing. If multiple requests arrive simultaneously,
+    the server can process them in parallel, as long as there are available threads in the pool.
+
     Attributes:
         data_ref: A NetworkData instance for managing the state and nodes of the distributed network.
         dealer_ref: A NetworkDealer instance for managing a ZeroMQ-based communication with nodes
@@ -212,6 +216,8 @@ class NetworkService(network_pb2_grpc.NetworkServicer):
         will run indefinitely until terminated.
         """
         # Creates the grpc server
+        # By default the number of threads in the pool is set
+        # to the number of processors (CPU cores) available on the machine
         server = grpc.server(futures.ThreadPoolExecutor())
 
         # Binds the NetworkService instance to the server

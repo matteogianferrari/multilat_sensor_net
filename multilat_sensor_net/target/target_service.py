@@ -32,6 +32,10 @@ class TargetService(target_pb2_grpc.TargetServicer):
     It provides methods for serving client requests to get the position of a target
     and manages the gRPC server lifecycle.
 
+    The gRPC server manages a pool of worker threads. Each incoming request is assigned
+    to one of these threads for processing. If multiple requests arrive simultaneously,
+    the server can process them in parallel, as long as there are available threads in the pool.
+
     Attributes:
         data_ref: A TargetData reference representing the domain logic for managing
             the target's position in a 3D space.
@@ -89,6 +93,8 @@ class TargetService(target_pb2_grpc.TargetServicer):
         will run indefinitely until terminated.
         """
         # Creates the grpc server
+        # By default the number of threads in the pool is set
+        # to the number of processors (CPU cores) available on the machine
         server = grpc.server(futures.ThreadPoolExecutor())
 
         # Binds the TargetService instance to the server

@@ -98,6 +98,8 @@ class NodeStub:
 
         try:
             # Adds the node to the distributed network using the gRPC function
+            # The function call will block execution until it receives a response
+            # from the server or encounters an error (like a timeout)
             response = self._network_stub.AddNode(request)
         except grpc.RpcError as rpc_error:
             # When the gRPC servicer is stopped the measurement thread is stopped
