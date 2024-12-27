@@ -42,8 +42,8 @@ class SensorController:
             node_id: int,
             pos: np.array,
             service_addr: str,
-            var: float = 0.0016,
-            freq: float = 10,
+            acc: float = 0.003,
+            freq: float = 40,
             verbose: bool = False
     ) -> None:
         """Initializes the SensorController.
@@ -53,7 +53,7 @@ class SensorController:
             pos: A 3D numpy array containing the position of the distance sensor.
             service_addr: The socket address (e.g., "localhost:50051") where the gRPC server is
                 listening for incoming connections.
-            var: The variance for the Gaussian noise added to the measured distance [m].
+            acc: The accuracy for the random Uniform noise added to the measured distance [m].
             freq: The frequency [Hz] at which distance measurements are taken.
             verbose: Flag indicating whether the classes must produce an output.
         """
@@ -66,7 +66,7 @@ class SensorController:
             node_id=node_id,
             pos=pos,
             service_addr=service_addr,
-            var=var,
+            acc=acc,
             freq=freq,
             verbose=verbose
         )

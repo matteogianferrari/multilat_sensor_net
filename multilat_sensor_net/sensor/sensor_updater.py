@@ -1,9 +1,9 @@
 """This module implements the SensorUpdater class.
 
 The SensorUpdater class manages fetching the target's position via gRPC at a given frequency,
-computing the distance from the sensor to the target by adding Gaussian noise, and updating
-the sensor's domain object. The measurement loop is performed in a separate daemon thread
-that continues to run until the main thread finishes or a gRPC error occurs.
+computing the distance from the sensor to the target by adding Uniform random noise within a
+range, and updating the sensor's domain object. The measurement loop is performed in a
+separate daemon thread that continues to run until the main thread finishes or a gRPC error occurs.
 
 Classes:
     SensorUpdater: SensorUpdater class for measuring the Euclidean distance to the target.
@@ -39,8 +39,8 @@ class SensorUpdater:
     """SensorUpdater class for measuring the Euclidean distance to the target.
 
     This class fetches the target's position via gRPC at a given frequency, computes the distance
-    from the sensor to the target by adding Gaussian noise, and updates the sensor's domain object.
-    The measurement loop is performed in a separate daemon thread.
+    from the sensor to the target by adding random Uniform noise within a range, and updates
+    the sensor's domain object. The measurement loop is performed in a separate daemon thread.
 
     Attributes:
         data_ref: A SensorData reference representing the domain logic for managing
@@ -48,7 +48,8 @@ class SensorUpdater:
         node_id: An integer indicating the ID of the related node.
         pos: A 3D numpy array indicating the distance sensor position [x, y, z].
         freq: A float indicating the sensor measurement frequency [Hz].
-        var: A float representing the variance [m] used to add Gaussian noise to the distance measurement.
+        acc: A float representing the accuracy [m] used to add random Uniform noise
+            to the distance measurement.
         verbose: A boolean flag that enables logging for debugging purposes. If True, detailed
             logs about actions performed by the components will be printed to the console.
         _channel: A gRPC channel for communicating with the target service.
@@ -63,7 +64,7 @@ class SensorUpdater:
             node_id: int,
             pos: np.array,
             service_addr: str,
-            var: float,
+            acc: float,
             freq: float,
             verbose: bool
     ) -> None:
@@ -75,7 +76,7 @@ class SensorUpdater:
             pos: A 3D numpy array containing the position of the distance sensor.
             service_addr: The socket address (e.g., "localhost:50051") where the gRPC server is
                 listening for incoming connections.
-            var: The variance for the Gaussian noise added to the measured distance [m].
+            acc: The accuracy for the random Uniform noise added to the measured distance [m].
             freq: The frequency [Hz] at which distance measurements are taken.
             verbose: Flag indicating whether the classes must produce an output.
         """
@@ -84,7 +85,7 @@ class SensorUpdater:
         # Sensor attributes
         self.node_id = node_id
         self.pos = pos
-        self.var = var
+        self.acc = acc
         self.freq = freq
 
         # gRPC stub attributes
@@ -115,7 +116,7 @@ class SensorUpdater:
         distance = np.linalg.norm(self.pos - target_pos)
 
         # Adds gaussian noise to the distance (mean: 0, std: sqrt(var))
-        distance += np.random.normal(loc=0.0, scale=np.sqrt(self.var))
+        distance += np.random.uniform(low=-self.acc, high=self.acc)
 
         return distance
 
@@ -124,7 +125,7 @@ class SensorUpdater:
 
          This method runs in a separate daemon thread. It performs these steps in a loop:
              1. Requests the target's position via gRPC.
-             2. Computes the distance with added Gaussian noise.
+             2. Computes the distance with added random Uniform noise.
              3. Updates the sensor's domain object with the measured distance.
              4. Waits the appropriate interval to maintain the specified measurement frequency.
 
@@ -145,6 +146,8 @@ class SensorUpdater:
 
             try:
                 # Gets the target position using the gRPC function
+                # The function call will block execution until it receives a response
+                # from the server or encounters an error (like a timeout)
                 response = self._target_stub.GetPosition(request)
             except grpc.RpcError as rpc_error:
                 # When the gRPC servicer is stopped the measurement thread is stopped
