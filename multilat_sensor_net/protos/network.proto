@@ -59,10 +59,6 @@ message NodeRequest {
  */
 message NodeResponse {
   NodeStatus status = 1;  // Status of the node addition
-
-  float x = 2;  // X-coordinate of the sensor's global position
-  float y = 3;  // Y-coordinate of the sensor's global position
-  float z = 4;  // Z-coordinate of the sensor's global position
 }
 
 

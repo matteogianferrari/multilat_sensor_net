@@ -131,19 +131,19 @@ class NetworkService(network_pb2_grpc.NetworkServicer):
         """
         if self.verbose:
             print(f"NetworkService: Received StartNetwork request from Client[{request.client_id}]")
-
-        # Edge case
-        # Checks if the distributed network is already active
-        if self.data_ref.get_is_active():
-            res = network_pb2.StartResponse(status=network_pb2.SS_ERROR)
-            if self.verbose:
-                print(f"NetworkService: Cannot start the network because is already active")
-
-            return res
         
         # Gets the nodes info from the domain object
         nodes_info = self.data_ref.get_nodes_info()
         n_nodes = len(nodes_info)
+
+        # Edge case
+        # Checks if the distributed network is already active
+        if self.data_ref.get_is_active():
+            res = network_pb2.StartResponse(status=network_pb2.SS_ERROR, n_nodes=n_nodes)
+            if self.verbose:
+                print(f"NetworkService: Cannot start the network because is already active")
+
+            return res
 
         # Connects the dealer to the bind addresses
         self.dealer_ref.connect(nodes_info=nodes_info)
