@@ -1,35 +1,41 @@
 @startuml
+
 skinparam backgroundColor #FFFFFF
 
 ' Defines the participants in the protocol
-box Sensor #BADA55
+box Sensor #6897BB
 participant "SensorUpdater" as SensorUpdater
 end box
 
-box Target #FF7373
+box Target #FFF68F
 participant "TargetService" as TargetService
-participant "TargetData" as TargetData
 end box
 
-== gRPC GetPosition between Sensor and Target ==
-' SensorUpdater requests GetPosition RPC sending a GetPositionRequest message
-' containing the requesting node ID
-SensorUpdater -> TargetService: GetPosition(GetPositionRequest(node_id))
+== gRPC GetPosition ==
+
+' TargetService thread is running waiting for incoming requests
+activate TargetService
 activate SensorUpdater
 
+' SensorUpdater requests GetPosition RPC sending a GetPositionRequest message
+' containing the requesting node ID
+SensorUpdater -> TargetService: GetPositionRequest(node_id)
+
+' The RPC request blocks the SensorUpdater thread while waiting for a response
+deactivate SensorUpdater
+
 ' TargetService receives the RPC request for GetPosition
+' TargetService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
 activate TargetService
 
-' TargetService gets the target position from TargetData
-TargetService -> TargetData: get_position()
-activate TargetData
+' TargetService GetPosition procedure is executed
+TargetService -> TargetService: Process Request
 
-' TargetData returns the target position
-return [x, y, z]
-
-' TargetService responds to SensorUpdater sending a GetPositionResponse message
-' containing the request status and the target position
-return GetPositionResponse(status, x, y, z)
-deactivate SensorUpdater
+' The TargetService sends a GetPositionResponse message to the SensorUpdater containing
+' a positive status for the requested operation and the coordinates of the target
+TargetService --> SensorUpdater : GetPositionResponse (status: PS_OK, x, y, z)
+deactivate TargetService
+activate SensorUpdater
 
 @enduml

@@ -1,4 +1,5 @@
 @startuml
+
 skinparam backgroundColor #FFFFFF
 
 ' Defines the participants in the protocol
@@ -8,51 +9,41 @@ end box
 
 box Network #FFF68F
 participant "NetworkService" as NetworkService
-participant "NetworkData" as NetworkData
 end box
-== gRPC AddNode between Node and Network ==
 
-== is_active=False ==
-' NodeStub requests AddNode RPC sending a NodeRequest message
-' containing the requesting node ID
-NodeStub -> NetworkService: AddNode(NodeRequest(node_id, x, y, z, bind_address))
+== gRPC AddNode ==
+
+' NetworkService thread is running waiting for incoming requests
+activate NetworkService
 activate NodeStub
 
-' NetworkService receives the RPC request for AddNode
-activate NetworkService
-
-NetworkService -> NetworkData: get_is_active()
-activate NetworkData
-return False
-
-' NetworkService adds the node information to the NetworkData
-NetworkService -> NetworkData: add_node(node_id, [x, y, z], bind_address)
-activate NetworkData
-
-' NetworkData returns the status of the operation
-return Returns True | False
-
-' NetworkService responds to NodeStub sending a NodeResponse message
-' containing the operation status
-return NodeResponse(status)
-deactivate NodeStub
-
-== is_active=True ==
 ' NodeStub requests AddNode RPC sending a NodeRequest message
-' containing the requesting node ID
-NodeStub -> NetworkService: AddNode(NodeRequest(node_id, x, y, z, bind_address))
-activate NodeStub
+' containing the requesting node ID, the sensor's position and the bind address
+NodeStub -> NetworkService: NodeRequest(node_id, x, y, z, bind_address)
+
+' The RPC request blocks the NodeStub thread while waiting for a response
+deactivate NodeStub
 
 ' NetworkService receives the RPC request for AddNode
+' NetworkService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
 activate NetworkService
 
-NetworkService -> NetworkData: get_is_active()
-activate NetworkData
-return True
+' NetworkService AddNode procedure is executed
+NetworkService -> NetworkService: Process Request
 
-' NetworkService responds to NodeStub sending a NodeResponse message
-' containing the operation status
-return NodeResponse(status)
-deactivate NodeStub
+' The distributed network isn't active so the node is added
+alt Success: is_active=False
+    ' The NetworkService sends a NodeResponse message to the NodeStub containing
+    ' a positive status for the requested operation
+    NetworkService --> NodeStub : NodeResponse (status: NS_OK)
+    activate NodeStub
+' The distributed network is active so the node cannot be added
+else Error: is_active=True
+    ' The NetworkService sends a NodeResponse message to the NodeStub containing
+    ' a negative status for the requested operation
+    NetworkService --> NodeStub : NodeResponse (status: NS_ERROR)
+    deactivate NetworkService
+end
 
 @enduml

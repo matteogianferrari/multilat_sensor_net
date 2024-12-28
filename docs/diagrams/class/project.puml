@@ -55,7 +55,7 @@ package "Target" {
 }
 
 ' NodeSensor component
-package NodeSensor {
+package Node {
     class SensorController {
         + data: SensorData
         + updater: SensorUpdater

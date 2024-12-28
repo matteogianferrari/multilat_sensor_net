@@ -1,4 +1,5 @@
 @startuml
+
 skinparam backgroundColor #FFFFFF
 
 ' Defines the participants in the protocol
@@ -6,27 +7,36 @@ box Network #6897BB
 participant "NetworkDealer" as NetworkDealer
 end box
 
-!pragma teoz true
 box Node #FFF68F
 participant "NodeRouter" as NodeRouter
-box Sensor
-participant "SensorController" as SensorController
-end box
 end box
 
-== ZeroMQ GetDistance between Network and Node ==
-' NetworkDealer sends a message containing GetDistance to all the nodes
-' in the distributed network
-NetworkDealer -> NodeRouter: msg(identity:GetDistance)
+== ZeroMQ GetDistance ==
+
+' NodeRouter thread is blocked waiting for incoming requests
+' NetworkDelaer thread is running
 activate NetworkDealer
 
+' NetworkDealer sends a message to all the nodes in the distributed network
+' containing the message GetDistance
+NetworkDealer -> NodeRouter: msg(GetDistance)
+
+' NetworkDealer uses a ZeroMQ poller to receive the responses asynchronously
+' from all the nodes in the distributed network
+activate NetworkDealer
+
+' NodeRouter receives the message containing GetDistance
+' NodeRouter thread is unblocked when the message is received
 activate NodeRouter
 
-NodeRouter -> SensorController: get_distance()
-activate SensorController
-return distance
+' NodeRouter GetDistance procedure is executed
+NodeRouter -> NodeRouter: Process Request
 
-return msg(identity:distance)
+' The NodeRouter sends a message to the NetworkDealer containing the distance
+' between the node and the target
+' The identity is used to send back to the NetworkDealer the distance
+NodeRouter --> NetworkDealer : msg(identity:distance)
+deactivate NodeRouter
 deactivate NetworkDealer
 
 @enduml

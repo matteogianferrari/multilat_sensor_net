@@ -1,4 +1,5 @@
 @startuml
+
 skinparam backgroundColor #FFFFFF
 
 ' Defines the participants in the protocol
@@ -6,72 +7,45 @@ box Client #6897BB
 participant "ClientApp" as ClientApp
 end box
 
-!pragma teoz true
 box Network #FFF68F
 participant "NetworkService" as NetworkService
-participant "NetworkData" as NetworkData
-participant "NetworkDealer" as NetworkDealer
-box Estimator
-participant "Multilateration" as Multilateration
 end box
-end box
-== gRPC StartNetwork between Client and Network ==
 
-== is_active=False ==
-' ClientApp requests StartNetwork RPC sending a StartRequest message
-' containing the requesting client ID
-ClientApp -> NetworkService: StartNetwork(StartRequest(client_id))
+== gRPC StartNetwork ==
+
+' NetworkService thread is running waiting for incoming requests
+activate NetworkService
 activate ClientApp
 
-' NetworkService receives the RPC request for StartNetwork
-activate NetworkService
-
-NetworkService -> NetworkData: get_nodes_info()
-activate NetworkData
-return nodes_info
-
-NetworkService -> NetworkData: get_is_active()
-activate NetworkData
-return False
-
-NetworkService -> NetworkDealer: connect(nodes_info)
-activate NetworkDealer
-return
-
-NetworkService -> Multilateration: set_sensor_positions(nodes_info)
-activate Multilateration
-return
-
-' NetworkService sets the state of the network to active in NetworkData
-NetworkService -> NetworkData: set_is_active(state)
-activate NetworkData
-return
-
-' NetworkService responds to ClientApp sending a StartResponse message
-' containing the operation status and the number of nodes in the network
-return NodeResponse(status, n_nodes)
-deactivate ClientApp
-
-== is_active=True ==
 ' ClientApp requests StartNetwork RPC sending a StartRequest message
 ' containing the requesting client ID
-ClientApp -> NetworkService: StartNetwork(StartRequest(client_id))
-activate ClientApp
+ClientApp -> NetworkService: StartRequest(client_id)
+
+' The RPC request blocks the ClientApp thread while waiting for a response
+deactivate ClientApp
 
 ' NetworkService receives the RPC request for StartNetwork
+' NetworkService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
 activate NetworkService
 
-NetworkService -> NetworkData: get_nodes_info()
-activate NetworkData
-return nodes_info
+' NetworkService StartNetwork procedure is executed
+NetworkService -> NetworkService: Process Request
 
-NetworkService -> NetworkData: get_is_active()
-activate NetworkData
-return True
-
-' NetworkService responds to ClientApp sending a StartResponse message
-' containing the operation status and the number of nodes in the network
-return NodeResponse(status, n_nodes)
-deactivate ClientApp
+' The distributed network isn't active so the network is started
+alt Success: is_active=False
+    ' The NetworkService sends a StartResponse message to the ClientApp containing
+    ' a positive status for the requested operation and the number of nodes present
+    ' in the distributed network
+    NetworkService --> ClientApp : StartResponse (status: SS_OK, n_nodes)
+    activate ClientApp
+' The distributed network is active so the network cannot be started again
+else Error: is_active=True
+    ' The NetworkService sends a StartResponse message to the ClientApp containing
+    ' a negative status for the requested operation and the number of nodes present
+    ' in the distributed network
+    NetworkService --> ClientApp : StartResponse (status: SS_ERROR, n_nodes)
+    deactivate NetworkService
+end
 
 @enduml

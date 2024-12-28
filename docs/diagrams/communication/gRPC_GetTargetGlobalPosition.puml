@@ -1,4 +1,5 @@
 @startuml
+
 skinparam backgroundColor #FFFFFF
 
 ' Defines the participants in the protocol
@@ -6,62 +7,44 @@ box Client #6897BB
 participant "ClientApp" as ClientApp
 end box
 
-!pragma teoz true
 box Network #FFF68F
 participant "NetworkService" as NetworkService
-participant "NetworkData" as NetworkData
-participant "NetworkDealer" as NetworkDealer
-box Estimator
-participant "Multilateration" as Multilateration
 end box
-end box
-== gRPC GetTargetGlobalPosition between Client and Network ==
 
-== is_active=True ==
-' ClientApp requests GetTargetGlobalPosition RPC sending a TargetRequest message
-' containing the requesting client ID
-ClientApp -> NetworkService: GetTargetGlobalPosition(TargetRequest(client_id))
+== gRPC GetTargetGlobalPosition ==
+
+' NetworkService thread is running waiting for incoming requests
+activate NetworkService
 activate ClientApp
 
-' NetworkService receives the RPC request for GetTargetGlobalPosition
-activate NetworkService
-
-' NetworkService
-NetworkService -> NetworkData: get_is_active()
-activate NetworkData
-return True
-
-' NetworkService sets the state of the network to active in NetworkData
-NetworkService -> NetworkDealer: request_distances()
-activate NetworkDealer
-return distances
-
-NetworkService -> Multilateration: estimate_position(distances)
-activate Multilateration
-return target_pos
-
-' NetworkService responds to ClientApp sending a TargetResponse message
-' containing the operation status and the number of nodes in the network
-return TargetResponse(status, x, y, z)
-deactivate ClientApp
-
-== is_active=False ==
 ' ClientApp requests GetTargetGlobalPosition RPC sending a TargetRequest message
 ' containing the requesting client ID
-ClientApp -> NetworkService: GetTargetGlobalPosition(TargetRequest(client_id))
-activate ClientApp
+ClientApp -> NetworkService: TargetRequest(client_id)
+
+' The RPC request blocks the ClientApp thread while waiting for a response
+deactivate ClientApp
 
 ' NetworkService receives the RPC request for GetTargetGlobalPosition
+' NetworkService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
 activate NetworkService
 
-' NetworkService
-NetworkService -> NetworkData: get_is_active()
-activate NetworkData
-return False
+' NetworkService GetTargetGlobalPosition procedure is executed
+NetworkService -> NetworkService: Process Request
 
-' NetworkService responds to ClientApp sending a TargetResponse message
-' containing the operation status and the number of nodes in the network
-return TargetResponse(status, x, y, z)
-deactivate ClientApp
+' The distributed network is active so the target global position is computed
+alt Success: is_active=True
+    ' The NetworkService sends a TargetResponse message to the ClientApp containing
+    ' a positive status for the requested operation and the global coordinates of the target
+    NetworkService --> ClientApp : TargetResponse (status: TS_OK, x, y, z)
+    activate ClientApp
+' The distributed network isn't active so the target global position cannot be computed
+else Error: is_active=False
+    ' The NetworkService sends a TargetResponse message to the ClientApp containing
+    ' a negative status for the requested operation and the global coordinates of the target
+    ' set to infinite
+    NetworkService --> ClientApp : TargetResponse (status: TS_ERROR, x: inf, y: inf, z: inf)
+    deactivate NetworkService
+end
 
 @enduml
