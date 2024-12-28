@@ -67,33 +67,35 @@ class NodeRouter:
         This method continuously listens for incoming messages, processes them based on their content,
         and sends appropriate responses. Messages include requests for sensor distance or unknown commands.
         """
-        while True:
-            # A ROUTER socket receives frames: [identity, message]
-            # Blocking function
-            frames = self._socket.recv_multipart()
+        try:
+            while True:
+                # A ROUTER socket receives frames: [identity, message]
+                # Blocking function
+                frames = self._socket.recv_multipart()
 
-            # frames[0] is the identity used by DEALER, frames[1] is the actual message
-            identity, request_data = frames[0], frames[1]
-            msg = request_data.decode()
-
-            if self.verbose:
-                print(f"NodeRouter[{self.node_id}]: Received from distributed network request: {msg}")
-
-            if msg == "GetDistance":
-                # Reads the measurement from the sensor
-                distance = self.sensor_ref.get_distance()
-
-                # Creates the response message and sends it back to the distributed network
-                reply = f"{self.node_id}:{distance}"
-                self._socket.send_multipart([identity, reply.encode()])
+                # frames[0] is the identity used by DEALER, frames[1] is the actual message
+                identity, request_data = frames[0], frames[1]
+                msg = request_data.decode()
 
                 if self.verbose:
-                    print(f"NodeRouter[{self.node_id}]: Sent distance {distance:.2f}m")
-            else:
-                # Sends back to the distributed network and error message
-                self._socket.send_multipart([identity, "Error".encode()])
+                    print(f"NodeRouter[{self.node_id}]: Received from distributed network request: {msg}")
 
-                if self.verbose:
-                    print(f"NodeRouter[{self.node_id}]: Unknown request")
+                if msg == "GetDistance":
+                    # Reads the measurement from the sensor
+                    distance = self.sensor_ref.get_distance()
 
-# TODO: stop network
+                    # Creates the response message and sends it back to the distributed network
+                    reply = f"{self.node_id}:{distance}"
+                    self._socket.send_multipart([identity, reply.encode()])
+
+                    if self.verbose:
+                        print(f"NodeRouter[{self.node_id}]: Sent distance {distance:.2f}m")
+                else:
+                    # Sends back to the distributed network and error message
+                    self._socket.send_multipart([identity, "Error".encode()])
+
+                    if self.verbose:
+                        print(f"NodeRouter[{self.node_id}]: Unknown request")
+        except KeyboardInterrupt:
+            print(f"NodeRouter[{self.node_id}: Node stopped")
+            

@@ -242,5 +242,3 @@ class NetworkService(network_pb2_grpc.NetworkServicer):
         signal.signal(signal.SIGTERM, handle_shutdown)
 
         server.wait_for_termination()
-
-# TODO: stop network (is active va disattivato)

@@ -131,5 +131,3 @@ class NetworkDealer:
             print("NetworkDealer: All responses collected")
 
         return distances
-
-# TODO: stop network

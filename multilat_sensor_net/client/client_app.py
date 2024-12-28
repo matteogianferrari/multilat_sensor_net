@@ -144,14 +144,7 @@ class ClientApp:
                     # Sleeps for an interval to match the specified frequency
                     time.sleep(1.0 / self.freq)
         except KeyboardInterrupt:
-            # Stops the network
-            self._stop_network()
-
-    def _stop_network(self) -> None:
-        """Stops the distributed network via gRPC.
-        """
-        print("ClientApp: Stopping the network")
-        # TODO: stop network
+            print("ClientApp: Application stopped")
 
     def run(self) -> None:
         """Executes the client application.
