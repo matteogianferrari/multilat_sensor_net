@@ -98,4 +98,3 @@ class NodeRouter:
                         print(f"NodeRouter[{self.node_id}]: Unknown request")
         except KeyboardInterrupt:
             print(f"NodeRouter[{self.node_id}: Node stopped")
-            

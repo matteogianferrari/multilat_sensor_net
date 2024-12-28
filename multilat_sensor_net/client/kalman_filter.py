@@ -87,12 +87,12 @@ class KalmanFilter:
         self._Q = np.zeros((6, 6))
 
         # Initializes the sensor measurement covariance matrix.
-        # The values are set to be the squared variance of the measurement,
-        # which is assumed to be +-40mm (depends on the sensor used).
+        # The values are set to be the squared standard deviation of the measurement,
+        # which is assumed to be +-30mm (depends on the sensor used).
         self._R = np.array([
-            [0.0016, 0, 0],
-            [0, 0.0016, 0],
-            [0, 0, 0.0016]
+            [0.0009, 0, 0],
+            [0, 0.0009, 0],
+            [0, 0, 0.0009]
         ])
 
         self._y = np.zeros(3)
