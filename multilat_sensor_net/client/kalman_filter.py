@@ -138,7 +138,7 @@ class KalmanFilter:
         """
         return self._x[:3]
     
-    def update_matrices(self, dt) -> None:
+    def update_matrices(self, dt: float) -> None:
         """Updates the matrices that are dependent on a delta time.
 
         Updates the update matrix F and the process covariance matrix Q.

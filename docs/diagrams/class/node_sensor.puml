@@ -21,7 +21,7 @@ class SensorUpdater {
     + node_id: int
     + pos: numpy.array
     + freq: float
-    + var: float
+    + acc: float
     + verbose: bool
     - _channel: grpc.Channel
     - _target_stub: TargetStub

@@ -1,249 +1,256 @@
 @startuml
 
 ' Target component
-class TargetController {
-    + data: TargetData
-    + service: TargetService
-    + updater: TargetUpdater
-    + TargetController(socket_addr: str, path_file: str, freq: float, loop_path: bool, verbose: bool)
-    + start(): void
-}
+package "Target" {
+    class TargetController {
+        + data: TargetData
+        + service: TargetService
+        + updater: TargetUpdater
+        + TargetController(socket_addr: str, path_file: str, freq: float, loop_path: bool, verbose: bool)
+        + start(): void
+    }
 
-class TargetData {
-    - _pos: numpy.array
-    - _synch_r: Semaphore
-    - _synch_w: Semaphore
-    - _mutex: Lock
-    - _blocked_r: int
-    - _blocked_w: int
-    - _running_r: int
-    - _running_w: int
-    + TargetData(start_pos: numpy.array)
-    + get_position(): numpy.array
-    + set_position(new_pos: numpy.array): void
-}
+    class TargetData {
+        - _pos: numpy.array
+        - _synch_r: Semaphore
+        - _synch_w: Semaphore
+        - _mutex: Lock
+        - _blocked_r: int
+        - _blocked_w: int
+        - _running_r: int
+        - _running_w: int
+        + TargetData(start_pos: numpy.array)
+        + get_position(): numpy.array
+        + set_position(new_pos: numpy.array): void
+    }
 
-class TargetService {
-    + data_ref: TargetData
-    + socket_addr: str
-    + verbose: bool
-    + TargetService(data_ref: TargetData, socket_addr: str, verbose: bool)
-    + GetPosition(request, context)
-    + serve(): void
-}
+    class TargetService {
+        + data_ref: TargetData
+        + socket_addr: str
+        + verbose: bool
+        + TargetService(data_ref: TargetData, socket_addr: str, verbose: bool)
+        + GetPosition(request, context)
+        + serve(): void
+    }
 
-class TargetUpdater {
-    + data_ref: TargetData
-    + path_file: str
-    + freq: float
-    + loop_path: bool
-    + waypoints: list
-    + verbose: bool
-    - _thread: Thread
-    + TargetUpdater(data_ref: TargetData, path_file: str, freq: float, loop_path: bool, verbose: bool)
-    + start(): void
-    - _read_waypoints(): list
-    - _run(): void
-}
+    class TargetUpdater {
+        + data_ref: TargetData
+        + path_file: str
+        + freq: float
+        + loop_path: bool
+        + waypoints: list
+        + verbose: bool
+        - _thread: Thread
+        + TargetUpdater(data_ref: TargetData, path_file: str, freq: float, loop_path: bool, verbose: bool)
+        + start(): void
+        - _read_waypoints(): list
+        - _run(): void
+    }
 
-TargetController *-- TargetData
-TargetController *-- TargetService
-TargetController *-- TargetUpdater
-TargetService --> TargetData
-TargetUpdater --> TargetData
+    TargetController *-- TargetData
+    TargetController *-- TargetService
+    TargetController *-- TargetUpdater
+    TargetService --> TargetData
+    TargetUpdater --> TargetData
+}
 
 ' NodeSensor component
-class SensorController {
-    + data: SensorData
-    + updater: SensorUpdater
-    + SensorController(node_id: int, pos: numpy.array, service_addr: str, var: float, freq: float, verbose: bool)
-    + start(): void
-    + get_distance(): float
-}
+package NodeSensor {
+    class SensorController {
+        + data: SensorData
+        + updater: SensorUpdater
+        + SensorController(node_id: int, pos: numpy.array, service_addr: str, var: float, freq: float, verbose: bool)
+        + start(): void
+        + get_distance(): float
+    }
 
-class SensorData {
-    - _distance: float
-    - _mutex: Lock
-    + SensorData()
-    + get_distance(): float
-    + set_distance(new_distance: float): void
-}
+    class SensorData {
+        - _distance: float
+        - _mutex: Lock
+        + SensorData()
+        + get_distance(): float
+        + set_distance(new_distance: float): void
+    }
 
-class SensorUpdater {
-    + data_ref: SensorData
-    + node_id: int
-    + pos: numpy.array
-    + freq: float
-    + var: float
-    + verbose: bool
-    - _channel: grpc.Channel
-    - _target_stub: TargetStub
-    - _thread: Thread
-    + SensorUpdater(data_ref: SensorData, node_id: int, pos: numpy.array, service_addr: str, var: float, freq: float, verbose: bool)
-    + start(): void
-    - _compute_distance(target_pos: numpy.array): float
-    - _run(): void
-}
+    class SensorUpdater {
+        + data_ref: SensorData
+        + node_id: int
+        + pos: numpy.array
+        + freq: float
+        + acc: float
+        + verbose: bool
+        - _channel: grpc.Channel
+        - _target_stub: TargetStub
+        - _thread: Thread
+        + SensorUpdater(data_ref: SensorData, node_id: int, pos: numpy.array, service_addr: str, var: float, freq: float, verbose: bool)
+        + start(): void
+        - _compute_distance(target_pos: numpy.array): float
+        - _run(): void
+    }
 
-class NodeController {
-    + sensor: SensorController
-    + node_stub: NodeStub
-    + node_router: NodeRouter
-    + NodeController(node_id: int, pos: numpy.array, bind_address: str, target_service_addr: str, network_service_addr: str, verbose: bool)
-    + start(): void
-}
+    class NodeController {
+        + sensor: SensorController
+        + node_stub: NodeStub
+        + node_router: NodeRouter
+        + NodeController(node_id: int, pos: numpy.array, bind_address: str, target_service_addr: str, network_service_addr: str, verbose: bool)
+        + start(): void
+    }
 
-class NodeStub {
-    + node_id: int
-    + pos: numpy.array
-    + bind_address: str
-    + verbose: bool
-    - _channel: grpc.Channel
-    - _network_stub: NetworkStub
-    + NodeStub(node_id: int, pos: numpy.array, bind_address: str, network_service_addr: str, verbose: bool)
-    + add_node_to_network(): bool
-}
+    class NodeStub {
+        + node_id: int
+        + pos: numpy.array
+        + bind_address: str
+        + verbose: bool
+        - _channel: grpc.Channel
+        - _network_stub: NetworkStub
+        + NodeStub(node_id: int, pos: numpy.array, bind_address: str, network_service_addr: str, verbose: bool)
+        + add_node_to_network(): bool
+    }
 
-class NodeRouter {
-    + sensor_ref: SensorController
-    + node_id: int
-    + bind_address: str
-    + verbose: bool
-    - _socket: ZmqSocket
-    + NodeRouter(sensor_ref: SensorController, node_id: int, bind_address: str, verbose: bool)
-    + start(): void
-}
+    class NodeRouter {
+        + sensor_ref: SensorController
+        + node_id: int
+        + bind_address: str
+        + verbose: bool
+        - _socket: ZmqSocket
+        + NodeRouter(sensor_ref: SensorController, node_id: int, bind_address: str, verbose: bool)
+        + start(): void
+    }
 
-SensorController *-- SensorData
-SensorController *-- SensorUpdater
-NodeController *-- SensorController
-NodeController *-- NodeStub
-NodeController *-- NodeRouter
-SensorUpdater --> SensorData
-NodeRouter --> SensorController
+    SensorController *-- SensorData
+    SensorController *-- SensorUpdater
+    NodeController *-- SensorController
+    NodeController *-- NodeStub
+    NodeController *-- NodeRouter
+    SensorUpdater --> SensorData
+    NodeRouter --> SensorController
+}
 
 ' Client component
-class ClientApp {
-    + client_id: int
-    + verbose: bool
-    + freq: float
-    + output_trajectory_path: str
-    - _tracker: Tracker
-    - _channel: grpc.Channel
-    - _network_stub: NetworkStub
-    + ClientApp(client_id: int, service_addr: str, freq: float, output_trajectory_path: str, verbose: bool)
-    + run(): void
-    - _start_network(): bool
-    - _track_target(): void
-    - _stop_network(): void
-}
+package Client {
+    class ClientApp {
+        + client_id: int
+        + verbose: bool
+        + freq: float
+        + output_trajectory_path: str
+        - _tracker: Tracker
+        - _channel: grpc.Channel
+        - _network_stub: NetworkStub
+        + ClientApp(client_id: int, service_addr: str, freq: float, output_trajectory_path: str, verbose: bool)
+        + run(): void
+        - _start_network(): bool
+        - _track_target(): void
+    }
 
-class Tracker {
-    - _kalman: KalmanFilter
-    - _is_initialized: bool
-    - _prev_time: float
-    - _pred_pos: numpy.array
-    + Tracker()
-    + tracker_core(measurement: numpy.array): void
-    + get_predicted_position(): numpy.array
-}
+    class Tracker {
+        - _kalman: KalmanFilter
+        - _is_initialized: bool
+        - _prev_time: float
+        - _pred_pos: numpy.array
+        + Tracker()
+        + tracker_core(measurement: numpy.array): void
+        + get_predicted_position(): numpy.array
+    }
 
-class KalmanFilter {
-    - _x: numpy.array
-    - _P: numpy.matrix
-    - _F: numpy.matrix
-    - _Q: numpy.matrix
-    - _R: numpy.matrix
-    - _y: numpy.array
-    - _S: numpy.matrix
-    - _K: numpy.matrix
-    - _H: numpy.matrix
-    - _noise_ax: float
-    - _noise_ay: float
-    - _noise_az: float
-    + KalmanFilter()
-    + set_state(pos: numpy.array): void
-    + get_state(): numpy.array
-    + update_matrices(dt: float): void
-    + predict(): void
-    + update(z: numpy.array): void
-}
+    class KalmanFilter {
+        - _x: numpy.array
+        - _P: numpy.matrix
+        - _F: numpy.matrix
+        - _Q: numpy.matrix
+        - _R: numpy.matrix
+        - _y: numpy.array
+        - _S: numpy.matrix
+        - _K: numpy.matrix
+        - _H: numpy.matrix
+        - _noise_ax: float
+        - _noise_ay: float
+        - _noise_az: float
+        + KalmanFilter()
+        + set_state(pos: numpy.array): void
+        + get_state(): numpy.array
+        + update_matrices(dt: float): void
+        + predict(): void
+        + update(z: numpy.array): void
+    }
 
-ClientApp *-- Tracker
-Tracker *-- KalmanFilter
+    ClientApp *-- Tracker
+    Tracker *-- KalmanFilter
+}
 
 ' Network component
-class NetworkController {
-    + data: NetworkData
-    + dealer: NetworkDealer
-    + estimator: Multilateration
-    + service: NetworkService
-    + NetworkController(socket_addr: str, verbose: bool)
-    + start(): void
-}
+package Network {
+    class NetworkController {
+        + data: NetworkData
+        + dealer: NetworkDealer
+        + estimator: Multilateration
+        + service: NetworkService
+        + NetworkController(socket_addr: str, verbose: bool)
+        + start(): void
+    }
 
-class NetworkData {
-    - _nodes: dict
-    - _is_active: bool
-    - _synch_nodes_r: Semaphore
-    - _synch_nodes_w: Semaphore
-    - _mutex_nodes: Lock
-    - _blocked_nodes_r: int
-    - _blocked_nodes_w: int
-    - _running_nodes_r: int
-    - _running_nodes_w: int
-    - _synch_active_r: Semaphore
-    - _synch_active_w: Semaphore
-    - _mutex_active: Lock
-    - _blocked_active_r: int
-    - _blocked_active_w: int
-    - _running_active_r: int
-    - _running_active_w: int
-    + NetworkData()
-    + set_is_active(state: bool): void
-    + get_is_active(): bool
-    + get_nodes_info(): dict
-    + add_node(node_id: int, node_pos: numpy.array, node_address: str): bool
-}
+    class NetworkData {
+        - _nodes: dict
+        - _is_active: bool
+        - _synch_nodes_r: Semaphore
+        - _synch_nodes_w: Semaphore
+        - _mutex_nodes: Lock
+        - _blocked_nodes_r: int
+        - _blocked_nodes_w: int
+        - _running_nodes_r: int
+        - _running_nodes_w: int
+        - _synch_active_r: Semaphore
+        - _synch_active_w: Semaphore
+        - _mutex_active: Lock
+        - _blocked_active_r: int
+        - _blocked_active_w: int
+        - _running_active_r: int
+        - _running_active_w: int
+        + NetworkData()
+        + set_is_active(state: bool): void
+        + get_is_active(): bool
+        + get_nodes_info(): dict
+        + add_node(node_id: int, node_pos: numpy.array, node_address: str): bool
+    }
 
-class NetworkDealer {
-    + n_nodes: int
-    + verbose: bool
-    - _socket: ZmqSocket
-    + NetworkDealer(verbose: bool)
-    + connect(nodes_info: dict): void
-    + request_distances(): dict
-}
+    class NetworkDealer {
+        + n_nodes: int
+        + verbose: bool
+        - _socket: ZmqSocket
+        + NetworkDealer(verbose: bool)
+        + connect(nodes_info: dict): void
+        + request_distances(): dict
+    }
 
-class NetworkService {
-    + data_ref: NetworkData
-    + dealer_ref: NetworkDealer
-    + estimator_ref: Multilateration
-    + socket_addr: str
-    + verbose: bool
-    + NetworkService(data_ref, dealer_ref, estimator_ref, socket_addr: str, verbose: bool)
-    + serve(): void
-    + AddNode(request, context): NodeResponse
-    + StartNetwork(request, context): StartResponse
-    + GetTargetGlobalPosition(request, context): TargetResponse
-}
+    class NetworkService {
+        + data_ref: NetworkData
+        + dealer_ref: NetworkDealer
+        + estimator_ref: Multilateration
+        + socket_addr: str
+        + verbose: bool
+        + NetworkService(data_ref, dealer_ref, estimator_ref, socket_addr: str, verbose: bool)
+        + serve(): void
+        + AddNode(request, context): NodeResponse
+        + StartNetwork(request, context): StartResponse
+        + GetTargetGlobalPosition(request, context): TargetResponse
+    }
 
-class Multilateration {
-    + verbose: bool
-    - _sensor_positions: dict
-    - _initial_guess: numpy.array
-    + Multilateration(verbose: bool)
-    + set_sensor_positions(nodes_info: dict): void
-    + estimate_position(distances: dict): numpy.array
-}
+    class Multilateration {
+        + verbose: bool
+        - _sensor_positions: dict
+        - _initial_guess: numpy.array
+        + Multilateration(verbose: bool)
+        + set_sensor_positions(nodes_info: dict): void
+        + estimate_position(distances: dict): numpy.array
+    }
 
-NetworkController *-- NetworkData
-NetworkController *-- NetworkDealer
-NetworkController *-- Multilateration
-NetworkController *-- NetworkService
-NetworkService --> NetworkData
-NetworkService --> NetworkDealer
-NetworkService --> Multilateration
+    NetworkController *-- NetworkData
+    NetworkController *-- NetworkDealer
+    NetworkController *-- Multilateration
+    NetworkController *-- NetworkService
+    NetworkService --> NetworkData
+    NetworkService --> NetworkDealer
+    NetworkService --> Multilateration
+}
 
 ' Protocol associations
 ClientApp -[#blue]- NetworkService : gRPC Protocol

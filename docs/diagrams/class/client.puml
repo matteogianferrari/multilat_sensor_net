@@ -12,7 +12,6 @@ class ClientApp {
     + run(): void
     - _start_network(): bool
     - _track_target(): void
-    - _stop_network(): void
 }
 
 class Tracker {
