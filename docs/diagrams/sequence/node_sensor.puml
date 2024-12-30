@@ -1,0 +1,172 @@
+@startuml
+
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+actor NodeMain
+
+!pragma teoz true
+box Node #6897BB
+participant "NodeController" as NodeController
+box Sensor
+participant "SensorData" as SensorData
+participant "SensorController" as SensorController
+participant "SensorUpdater" as SensorUpdater
+end box
+participant "NodeStub" as NodeStub
+participant "NodeRouter" as NodeRouter
+end box
+
+box Network #FFF68F
+participant "NetworkService" as NetworkService
+participant "NetworkDealer" as NetworkDealer
+end box
+
+box Target #FFF68F
+participant "TargetService" as TargetService
+end box
+
+== Initialization ==
+
+' The node main creates an instance of NetworkController
+NodeMain -> NodeController: create
+note right: Every Initialization operation is executed\nsequentially in a single thread.
+activate NodeController
+
+' The NodeController creates an instance of SensorController
+NodeController -> SensorController: create
+activate SensorController
+
+' The SensorController creates an instance of SensorData
+SensorController -> SensorData: create
+activate SensorData
+return
+
+' The SensorController creates an instance of SensorUpdater
+SensorController -> SensorUpdater: create
+activate SensorUpdater
+return
+return
+
+' The NodeController creates an instance of NodeStub
+NodeController -> NodeStub: create
+activate NodeStub
+return
+
+' The NodeController creates an instance of NodeRouter
+NodeController -> NodeRouter: create
+activate NodeRouter
+return
+return
+
+== Start service ==
+
+' The NetworkService and TargetService threads are running
+activate NetworkService
+activate TargetService
+activate NetworkDealer
+
+' The node main starts the execution of NodeController
+NodeMain -> NodeController: start()
+activate NodeController
+
+' TargetController starts the SensorController
+NodeController -> SensorController: start()
+activate SensorController
+
+' SensorController starts the SensorUpdater daemon
+SensorController -> SensorUpdater: start()
+note right: SensorUpdater is a daemon thread\nwhich terminates when the\nmain thread stops.
+deactivate SensorController
+activate SensorUpdater
+
+' SensorUpdater thread updates the distance between the sensor and the target
+loop
+    ' SensorUpdater requests GetPosition RPC sending a GetPositionRequest message
+    ' containing the requesting node ID
+    SensorUpdater -> TargetService: GetPosition(GetPositionRequest(node_id))
+    note left: The measurement is performed\nat a specified frequency.
+
+    ' The RPC request blocks the SensorUpdater thread while waiting for a response
+    deactivate SensorUpdater
+
+    ' The TargetService sends a GetPositionResponse message to the SensorUpdater containing
+    ' a positive status for the requested operation and the coordinates of the target
+    TargetService -> SensorUpdater : GetPositionResponse (status: PS_OK, x, y, z)
+    activate SensorUpdater
+
+    ' SensorUpdater computes the Euclidean distance
+    SensorUpdater -> SensorUpdater: _compute_distance()
+
+    ' SensorUpdater sets the measured distance in SensorData
+    SensorUpdater -> SensorData: set_distance(new_distance)
+    activate SensorData
+    return
+end loop
+
+' NodeController adds the node to the distributed network
+NodeController -> NodeStub: add_node_to_network()
+deactivate NodeController
+activate NodeStub
+
+' NodeStub requests AddNode RPC sending a NodeRequest message
+' containing the requesting node ID, the sensor's position and the bind address
+NodeStub -> NetworkService: AddNode(NodeRequest(node_id, x, y, z, bind_address))
+deactivate NodeStub
+
+' The distributed network isn't active so the node is added
+alt Success: is_active=False
+    ' The NetworkService sends a NodeResponse message to the NodeStub containing
+    ' a positive status for the requested operation
+    NetworkService -> NodeStub : NodeResponse (status: NS_OK)
+    activate NodeStub
+    NodeStub --> NodeController: True
+    activate NodeController
+
+    ' NodeController starts the NodeRouter loop
+    NodeController -> NodeRouter: start()
+    note right: This operation runs\nin the main thread.
+    activate NodeRouter
+
+    loop
+        ' NodeRouter receives the message containing GetDistance
+        ' NodeRouter thread is unblocked when the message is received
+        NetworkDealer -> NodeRouter: msg(identity:GetDistance)
+        note left: The request message is received periodically\nbased on a sender frequency.
+        ' NodeRouter gets the measured distance from SensorController
+        NodeRouter -> SensorController: get_distance()
+        activate SensorController
+
+        ' SensorController forwards the request to SensorData
+        SensorController -> SensorData: get_distance()
+        activate SensorData
+        return distance
+        return distance
+
+        ' The NodeRouter sends a message to the NetworkDealer containing the distance
+        ' between the node and the target
+        ' The identity is used to send back to the NetworkDealer the distance
+        NodeRouter -> NetworkDealer : msg(identity:distance)
+    end loop
+' The distributed network is active so the node cannot be added
+else Error: is_active=True
+    ' The NetworkService sends a NodeResponse message to the NodeStub containing
+    ' a negative status for the requested operation
+    NetworkService -> NodeStub : NodeResponse (status: NS_ERROR)
+    note left: The network is already active and the node cannot be added.
+
+
+    NodeStub --> NodeController
+    deactivate NodeStub
+    NodeController --> NodeMain
+    deactivate NodeController
+end alt
+
+== Termination ==
+
+' The node main terminates the execution using Ctrl+C
+NodeMain -> NodeRouter: KeyboardInterrupt
+deactivate NodeRouter
+deactivate SensorUpdater
+
+@enduml

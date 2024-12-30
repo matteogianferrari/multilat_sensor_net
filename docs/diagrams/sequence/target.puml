@@ -1,0 +1,115 @@
+@startuml
+
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+actor TargetMain
+
+box Target #6897BB
+participant "TargetController" as TargetController
+participant "TargetData" as TargetData
+participant "TargetUpdater" as TargetUpdater
+participant "TargetService" as TargetService
+end box
+
+box Sensor #FFF68F
+participant "SensorUpdater" as SensorUpdater
+end box
+
+== Initialization ==
+
+' The target main creates an instance of TargetController
+TargetMain -> TargetController: create
+note right: Every Initialization operation is executed\nsequentially in a single thread.
+activate TargetController
+
+' The TargetController creates an instance of TargetData
+TargetController -> TargetData: create
+activate TargetData
+return
+
+' The TargetController creates an instance of TargetService
+TargetController -> TargetService: create
+activate TargetService
+return
+
+' The TargetController creates an instance of TargetUpdater
+TargetController -> TargetUpdater: create
+activate TargetUpdater
+TargetUpdater -> TargetUpdater: _read_waypoints()
+return
+
+' The creation of TargetController is terminated
+TargetController --> TargetMain
+deactivate TargetController
+
+== Start service ==
+
+' The SensorUpdater thread is running
+activate SensorUpdater
+
+' The target main starts the execution of TargetController
+TargetMain -> TargetController: start()
+activate TargetController
+
+' TargetController starts the TargetUpdater daemon
+TargetController -> TargetUpdater: start()
+note right: TargetUpdater is a daemon thread\nwhich terminates when the\nmain thread stops.
+activate TargetUpdater
+
+' TargetController starts the TargetService server
+TargetController -> TargetService: serve()
+note right: TargetService server runs\nin the main thread.
+deactivate TargetController
+
+' TargetService thread is running waiting for incoming requests
+activate TargetService
+
+' SensorUpdater requests GetPosition via gRPC to TargetService
+SensorUpdater -> TargetService: GetPosition(GetPositionRequest(node_id))
+
+' The RPC request blocks the SensorUpdater thread while waiting for a response
+deactivate SensorUpdater
+
+' TargetService receives the RPC request for GetPosition
+' TargetService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
+activate TargetService
+note left: TargetService handles asynchronously\nincoming requests with a thread pool.
+
+' TargetService executes the GetPosition procedure requesting the target
+' coordinates to TargetData
+TargetService -> TargetData: get_position()
+activate TargetData
+return [x, y, z]
+
+' The TargetService sends a GetPositionResponse message to the SensorUpdater containing
+' a positive status for the requested operation and the coordinates of the target
+TargetService -> SensorUpdater: GetPositionResponse(status, x, y, z)
+deactivate TargetService
+
+' SensorUpdater receives the response
+activate SensorUpdater
+
+' TargetUpdater thread updates the target position
+loop
+    ' TargetUpdater sends the new position to TargetData
+    TargetUpdater -> TargetData: set_position(new_pos)
+    note left: The update is performed\nat a specified frequency.
+    activate TargetData
+    return
+end loop
+
+== Termination ==
+
+' The target main terminates the execution using Ctrl+C
+TargetMain -> TargetService: KeyboardInterrupt
+
+' TargetService that runs in the main thread is stopped
+deactivate TargetService
+
+' TargetUpdater stops when the main thread is terminated due to be daemon
+deactivate TargetUpdater
+note left of TargetUpdater: Daemon thread stops automatically\nwhen the main thread exits.
+
+@enduml

@@ -1,0 +1,138 @@
+@startuml
+
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+actor ClientMain
+
+box Client #6897BB
+participant "KalmanFilter" as KalmanFilter
+participant "Tracker" as Tracker
+participant "ClientApp" as ClientApp
+end box
+
+box Network #FFF68F
+participant "NetworkService" as NetworkService
+end box
+
+== Initialization ==
+
+' The client main creates an instance of ClientApp
+ClientMain -> ClientApp: create
+note right: Every Initialization operation is executed\nsequentially in a single thread.
+activate ClientApp
+
+' The ClientApp creates an instance of Tracker
+ClientApp -> Tracker: create
+activate Tracker
+
+' The Tracker creates an instance of KalmanFilter
+Tracker -> KalmanFilter: create
+activate KalmanFilter
+return
+
+' The Tracker sets the initial state in KalmanFilter
+Tracker -> KalmanFilter: set_state(pos)
+activate KalmanFilter
+return
+return
+
+' The creation of ClientApp is terminated
+ClientApp --> ClientMain
+deactivate ClientApp
+
+== Start service ==
+
+' NetworkService receives the RPC request for StartNetwork
+' NetworkService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
+activate NetworkService
+
+' The target main starts the execution of ClientApp
+ClientMain -> ClientApp: run()
+note right: This operation runs\nin the main thread.
+activate ClientApp
+
+' ClientApp executes the start of the distributed network procedure
+ClientApp -> ClientApp: _start_network()
+
+' ClientApp requests StartNetwork RPC sending a StartRequest message
+' containing the requesting client ID
+ClientApp -> NetworkService: StartNetwork(StartRequest(client_id))
+
+' The RPC request blocks the ClientApp thread while waiting for a response
+deactivate ClientApp
+
+' The distributed network isn't active so the network is started
+alt Success: is_active=False
+    ' The NetworkService sends a StartResponse message to the ClientApp containing
+    ' a positive status for the requested operation and the number of nodes present
+    ' in the distributed network
+    NetworkService -> ClientApp : StartResponse (status: SS_OK, n_nodes)
+    note left: The network is activated correctly.
+    ' ClientApp receives the response
+    activate ClientApp
+
+    ' ClientApp executes the tracking procedure
+    ClientApp -> ClientApp: _track_target()
+
+    ' Tracking loop
+    loop
+        ' ClientApp requests GetTargetGlobalPosition RPC sending a TargetRequest message
+        ' containing the requesting client ID
+        ClientApp -> NetworkService: GetTargetGlobalPosition(TargetRequest(client_id))
+        deactivate ClientApp
+
+        ' The NetworkService sends a TargetResponse message to the ClientApp containing
+        ' a positive status for the requested operation and the global coordinates of the target
+        NetworkService -> ClientApp : TargetResponse (status: TS_OK, x, y, z)
+        activate ClientApp
+
+        ' ClientApp tracks the target object using Tracker
+        ClientApp -> Tracker: tracker_core(measurement)
+        activate Tracker
+
+        ' The Tracker updates the matrices based on the delta time
+        Tracker -> KalmanFilter: update_matrices(dt)
+        activate KalmanFilter
+        return
+
+        ' The Tracker predict the future state of the target using KalmanFilter
+        Tracker --> KalmanFilter: predict()
+        activate KalmanFilter
+        return
+
+        ' The Tracker update the prediction with the measurement using KalmanFilter
+        Tracker --> KalmanFilter: update(measurement)
+        activate KalmanFilter
+        return
+        return
+
+        ' ClientApp retrieves the predicted position
+        ClientApp -> Tracker: get_predicted_position()
+        activate Tracker
+        return pred_pos
+        deactivate Tracker
+    end loop
+
+' The distributed network is active so the network cannot be started again
+else Error: is_active=True
+    ' The NetworkService sends a StartResponse message to the ClientApp containing
+    ' a negative status for the requested operation and the number of nodes present
+    ' in the distributed network
+    NetworkService -> ClientApp : StartResponse (status: SS_ERROR, n_nodes)
+    note left: The network is already active and cannot be activated.
+
+    ' ClientApp terminates the execution
+    ClientApp --> ClientMain
+end alt
+
+== Termination ==
+
+' The client main terminates the execution using Ctrl+C
+ClientMain -> ClientApp: KeyboardInterrupt
+
+' ClientApp that runs in the main thread is stopped
+deactivate ClientApp
+
+@enduml

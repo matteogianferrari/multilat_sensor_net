@@ -1,0 +1,246 @@
+@startuml
+
+skinparam backgroundColor #FFFFFF
+
+' Defines the participants in the protocol
+actor NetworkMain
+
+!pragma teoz true
+box Network #6897BB
+participant "NetworkController" as NetworkController
+box Estimator
+participant "Multilateration" as Multilateration
+end box
+participant "NetworkDealer" as NetworkDealer
+participant "NetworkData" as NetworkData
+participant "NetworkService" as NetworkService
+end box
+
+box Node #FFF68F
+participant "NodeStub" as NodeStub
+participant "NodeRouter" as NodeRouter
+end box
+
+box Client #FFF68F
+participant "ClientApp" as ClientApp
+end box
+
+== Initialization ==
+
+' The network main creates an instance of NetworkController
+NetworkMain -> NetworkController: create
+note right: Every Initialization operation is executed\nsequentially in a single thread.
+activate NetworkController
+
+
+' The NetworkController creates an instance of NetworkData
+NetworkController -> NetworkData: create
+activate NetworkData
+return
+
+' The NetworkController creates an instance of NetworkDealer
+NetworkController -> NetworkDealer: create
+activate NetworkDealer
+return
+
+' The NetworkController creates an instance of Multilateration
+NetworkController -> Multilateration: create
+activate Multilateration
+return
+
+' The NetworkController creates an instance of NetworkService
+NetworkController -> NetworkService: create
+activate NetworkService
+return
+return
+
+== Start service ==
+
+' The NodeStub and ClientApp threads are running
+activate NodeStub
+activate ClientApp
+
+' The target main starts the execution of NetworkController
+NetworkMain -> NetworkController: start()
+activate NetworkController
+
+' NetworkController starts the NetworkService server
+NetworkController -> NetworkService: serve()
+note right: NetworkService server runs\nin the main thread.
+deactivate NetworkController
+
+' NetworkService thread is running waiting for incoming requests
+activate NetworkService
+
+' NodeStub requests AddNode via gRPC to NetworkService
+NodeStub -> NetworkService: AddNode(NodeRequest(node_id, x, y, z, bind_address))
+
+' The RPC request blocks the NodeStub thread while waiting for a response
+deactivate NodeStub
+
+
+' NetworkService receives the RPC request for AddNode
+' NetworkService has a thread pool for handling asynchronously the requests
+' from multiple client, it assigns the request to a worker thread
+activate NetworkService
+note left: NetworkService handles asynchronously\nincoming requests with a thread pool.
+
+' NetworkService asks NetworkData if the network is active
+NetworkService -> NetworkData: get_is_active()
+activate NetworkData
+
+' The distributed network has already been activated
+alt Error: is_active=True
+    NetworkData --> NetworkService: True
+
+    ' The NetworkService sends a NodeResponse message to the NodeStub containing
+    ' a negative status for the requested operation
+    NetworkService -> NodeStub: NodeResponse(status: NS_ERROR)
+    note left: The network is already active and the node cannot be added.
+    activate NodeStub
+
+' The distributed network isn't active
+else Success: is_active=False
+    NetworkData --> NetworkService: False
+
+    ' NetworkService adds the node information to NetworkData
+    NetworkService -> NetworkData: add_node(node_id, node_pos, node_address)
+
+    ' The node ID isn't present in the network
+    alt Success: add=True
+        NetworkData --> NetworkService: True
+
+        ' The NetworkService sends a NodeResponse message to the NodeStub containing
+        ' a positive status for the requested operation
+        NetworkService -> NodeStub: NodeResponse(status: NS_OK)
+
+    ' The node ID is already present in the network
+    else Error: add=False
+        NetworkData --> NetworkService: False
+        deactivate NetworkData
+
+        ' The NetworkService sends a NodeResponse message to the NodeStub containing
+        ' a negative status for the requested operation
+        NetworkService -> NodeStub: NodeResponse(status: NS_ERROR)
+        note left: The node ID is already present in the network.
+        deactivate NetworkService
+    end alt
+end alt
+
+' ClientApp requests StartNetwork via gRPC to NetworkService
+ClientApp -> NetworkService: StartNetwork(StartRequest(client_id))
+deactivate ClientApp
+
+activate NetworkService
+note left: NetworkService handles asynchronously\nincoming requests with a thread pool.
+
+' NetworkService requests the nodes information to NetworkData
+NetworkService -> NetworkData: get_nodes_info()
+activate NetworkData
+NetworkData --> NetworkService: nodes_info
+
+' NetworkService asks NetworkData if the network is active
+NetworkService -> NetworkData: get_is_active()
+
+' The distributed network has already been activated
+alt Error: is_active=True
+    NetworkData --> NetworkService: True
+
+    ' The NetworkService sends a StartResponse message to the ClientApp containing
+    ' a negative status for the requested operation and the number of nodes in the network
+    NetworkService -> ClientApp: StartResponse(status: SS_ERROR, n_nodes)
+    note left: The network is already active.
+    activate ClientApp
+
+' The distributed network isn't active
+else Success: is_active=False
+    NetworkData --> NetworkService: False
+
+    ' NetworkService asks NetworkDealer to connect to the nodes Routers
+    NetworkService -> NetworkDealer: connect()
+    activate NetworkDealer
+    return
+
+    ' Multilateration sets the sensors position for the target position computation
+    NetworkService -> Multilateration: set_sensor_positions(nodes_info)
+    activate Multilateration
+    return
+
+    ' NetworkService request to set the flag of active in NetworkData
+    NetworkService -> NetworkData: set_is_active(state)
+    NetworkData --> NetworkService
+    deactivate NetworkData
+
+    ' The NetworkService sends a StartResponse message to the ClientApp containing
+    ' a positive status for the requested operation and the number of nodes in the network
+    NetworkService -> ClientApp: StartResponse(status: SS_OK, n_nodes)
+    deactivate NetworkService
+end alt
+
+' Target global position requests loop
+loop
+    ' ClientApp requests GetTargetGlobalPosition RPC sending a TargetRequest message
+    ' containing the requesting client ID
+    ClientApp -> NetworkService: GetTargetGlobalPosition(TargetRequest(client_id))
+    note left: The request message is received periodically\nbased on a sender frequency.
+    deactivate ClientApp
+
+    activate NetworkService
+
+    ' NetworkService asks NetworkData if the network is active
+    NetworkService -> NetworkData: get_is_active()
+    note right: NetworkService handles asynchronously\nincoming requests with a thread pool.
+    activate NetworkData
+
+    ' The distributed network isn't active
+    alt Error: is_active=False
+        NetworkData --> NetworkService: False
+
+        ' The NetworkService sends a TargetResponse message to the ClientApp containing
+        ' a negative status for the requested operation and infinite values for coordinates
+        NetworkService -> ClientApp: TargetResponse(status: TS_ERROR, x: inf, y: inf, z: inf)
+        note left: The network isn't active.
+        activate ClientApp
+
+    ' The distributed network is active
+    else Success: is_active=True
+        NetworkData --> NetworkService: True
+        deactivate NetworkData
+
+        ' The NetworkService requests the distance convergecast to NetworkDealer
+        NetworkService -> NetworkDealer: request_distances()
+        activate NetworkDealer
+
+        ' The NetworkDealer requests to the nodes NodeRouter the distance
+        NetworkDealer -> NodeRouter: msg(identity:GetDistance)
+        activate NetworkDealer
+        activate NodeRouter
+
+        ' The NodeRouter sends back the distance between the sensor and the target
+        NodeRouter -> NetworkDealer: msg(identity:distance)
+        deactivate NodeRouter
+        deactivate NetworkDealer
+
+        ' The NetworkDealer returns the distances to NetworkService
+        NetworkDealer --> NetworkService: distances
+        deactivate NetworkDealer
+
+        ' The Multilateration estimates the target global position
+        NetworkService -> Multilateration: estimate_position(distances)
+        activate Multilateration
+        return target_pos
+
+        ' The NetworkService sends a TargetResponse message to the ClientApp containing
+        ' a positive status for the requested operation and the global coordinates of the target
+        NetworkService -> ClientApp: TargetResponse(status: TS_OK, x, y, z)
+        deactivate NetworkService
+    end alt
+end loop
+
+== Termination ==
+
+' The network main terminates the execution using Ctrl+C
+NetworkMain -> NetworkService: KeyboardInterrupt
+deactivate NetworkService
+
+@enduml
