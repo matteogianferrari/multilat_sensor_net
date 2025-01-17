@@ -14,7 +14,7 @@ end box
 == ZeroMQ GetDistance ==
 
 ' NodeRouter thread is blocked waiting for incoming requests
-' NetworkDelaer thread is running
+' NetworkDealer thread is running
 activate NetworkDealer
 
 ' NetworkDealer sends a message to all the nodes in the distributed network
